@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>XYZ Docs — Demo</title>
+<style>
+  :root{--navy:#0F2A4A;--orange:#FF9900;--green:#1E8E3E;--red:#B23A3A;--ink:#16202C;--soft:#4C5A6B;--line:#DCE2EA;--bg:#EEF1F5;--card:#fff}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Segoe UI',system-ui,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+  header{background:var(--navy);color:#fff;padding:14px 24px;display:flex;align-items:center;gap:14px}
+  header .mark{width:36px;height:36px;border-radius:9px;background:#2C6BF2;display:flex;align-items:center;justify-content:center;font-weight:800}
+  header h1{font-size:19px;margin:0}
+  header .who{margin-left:auto;font-size:13px;opacity:.9;text-align:right}
+  main{max-width:1180px;margin:18px auto;padding:0 16px;display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  section{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+  section.full{grid-column:1/-1}
+  h2{font-size:15px;margin:0 0 10px;display:flex;align-items:center;gap:8px}
+  h2 .n{width:22px;height:22px;border-radius:50%;background:var(--navy);color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center}
+  label{display:block;font-size:12px;color:var(--soft);margin:8px 0 3px}
+  input[type=text],input[type=password]{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px}
+  button{background:var(--navy);color:#fff;border:0;border-radius:7px;padding:8px 14px;font-size:14px;cursor:pointer;margin-top:10px}
+  button.warn{background:var(--red)} button.sec{background:#fff;color:var(--navy);border:1px solid var(--navy)}
+  button:disabled{opacity:.4;cursor:default}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;color:var(--soft);font-size:11px;text-transform:uppercase;border-bottom:1px solid var(--line);padding:6px}
+  td{padding:6px;border-bottom:1px solid #EEF1F4;vertical-align:middle}
+  td button{margin:0;padding:4px 9px;font-size:12px}
+  code{font-family:Consolas,monospace;font-size:12px;background:#F2F4F7;padding:1px 4px;border-radius:4px;word-break:break-all}
+  .pill{font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px}
+  .STANDARD{background:#E7F5EA;color:var(--green)} .DEEP_ARCHIVE{background:#E9EFFD;color:#2F5FD6}
+  #log{font-family:Consolas,monospace;font-size:12.5px;background:#0A1D34;color:#DCE8F7;border-radius:8px;padding:10px;height:260px;overflow:auto;white-space:pre-wrap}
+  #log .ok{color:#8FE0A3} #log .err{color:#FF8A8A} #log .info{color:#FFB84D}
+  .hint{font-size:12px;color:var(--soft);margin-top:6px}
+  details summary{cursor:pointer;font-size:13px;color:var(--soft)}
+  @media (max-width:800px){main{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <div class="mark">X</div>
+  <h1>XYZ Docs — demonstração da arquitetura</h1>
+  <div class="who" id="who">não autenticado</div>
+</header>
+
+<main>
+  <section class="full">
+    <details id="cfgBox">
+      <summary>Configuração (saídas da stack do CloudFormation)</summary>
+      <label>ApiUrl</label><input type="text" id="cfgApi" placeholder="https://xxxx.execute-api.sa-east-1.amazonaws.com">
+      <label>UserPoolClientId</label><input type="text" id="cfgClient">
+      <label>Region</label><input type="text" id="cfgRegion" value="sa-east-1">
+      <button onclick="salvarCfg()">Salvar</button>
+    </details>
+  </section>
+
+  <section>
+    <h2><span class="n">1</span>Login (Amazon Cognito)</h2>
+    <label>Usuário</label><input type="text" id="user" autocomplete="username">
+    <label>Senha</label><input type="password" id="pass" autocomplete="current-password">
+    <div id="novaBox" style="display:none">
+      <label>Primeiro acesso: defina uma nova senha (mín. 8, com minúscula e número)</label>
+      <input type="password" id="novaSenha" autocomplete="new-password">
+    </div>
+    <button onclick="login()">Entrar</button>
+    <button class="sec" onclick="sair()">Sair</button>
+    <div class="hint">O Cognito devolve um JWT. A API só aceita chamadas com esse token.</div>
+  </section>
+
+  <section>
+    <h2><span class="n">2</span>Enviar documento (URL pré-assinada)</h2>
+    <input type="file" id="file" accept="application/pdf,image/png,image/jpeg">
+    <label><input type="checkbox" id="antigo"> Simular documento com mais de 365 dias (grava em Deep Archive)</label>
+    <button onclick="enviar()" class="needAuth">Enviar</button>
+    <div class="hint">A Lambda só assina a URL. O arquivo vai direto do navegador para o S3.</div>
+  </section>
+
+  <section class="full">
+    <h2><span class="n">3</span>Meus documentos <button class="sec needAuth" style="margin:0 0 0 auto" onclick="listar()">Atualizar</button></h2>
+    <table><thead><tr><th>Chave no S3</th><th>Tamanho</th><th>Classe</th><th>Enviado em</th><th></th></tr></thead><tbody id="lista"><tr><td colspan="5" class="hint">Faça login para listar.</td></tr></tbody></table>
+  </section>
+
+  <section class="full">
+    <h2><span class="n">4</span>Teste de isolamento: tentar abrir o documento de outro usuário</h2>
+    <label>Chave de um objeto de OUTRO usuário (ex.: <code>usuario-&lt;sub-do-outro&gt;/2026/....pdf</code>)</label>
+    <input type="text" id="alvo">
+    <button class="warn needAuth" onclick="atacar()">Tentar baixar</button>
+    <button class="sec" onclick="semToken()">Chamar a API sem login</button>
+    <div class="hint">Com <code>APP_CHECK=true</code> a aplicação recusa. Com <code>APP_CHECK=false</code> (simulando um bug), a Lambda assina a URL, mas a credencial do STS só alcança o prefixo do usuário e o S3 nega.</div>
+  </section>
+
+  <section class="full">
+    <h2>Registro das chamadas</h2>
+    <div id="log"></div>
+  </section>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const store = { get(k){ try { return localStorage.getItem(k) } catch { return null } }, set(k,v){ try { localStorage.setItem(k,v) } catch {} } };
+let idToken = null, prefixo = null;
+
+function log(msg, cls = '') {
+  const d = document.createElement('div'); if (cls) d.className = cls;
+  d.textContent = new Date().toLocaleTimeString('pt-BR') + '  ' + msg;
+  $('log').appendChild(d); $('log').scrollTop = 1e9;
+}
+function cfg() { return { api: $('cfgApi').value.replace(/\/$/, ''), client: $('cfgClient').value.trim(), region: $('cfgRegion').value.trim() } }
+function salvarCfg() { const c = cfg(); store.set('xyzCfg', JSON.stringify(c)); log('Configuração salva', 'info'); $('cfgBox').open = false }
+(function carregarCfg() {
+  const c = JSON.parse(store.get('xyzCfg') || 'null');
+  if (c) { $('cfgApi').value = c.api; $('cfgClient').value = c.client; $('cfgRegion').value = c.region || 'sa-east-1' } else $('cfgBox').open = true;
+  document.querySelectorAll('.needAuth').forEach(b => b.disabled = true);
+})();
+
+async function cognito(target, body) {
+  const r = await fetch(`https://cognito-idp.${cfg().region}.amazonaws.com/`, {
+    method: 'POST', headers: { 'Content-Type': 'application/x-amz-json-1.1', 'X-Amz-Target': 'AWSCognitoIdentityProviderService.' + target },
+    body: JSON.stringify(body) });
+  const j = await r.json(); if (!r.ok) throw new Error(j.message || j.__type); return j;
+}
+async function login() {
+  try {
+    const u = $('user').value.trim();
+    let res = await cognito('InitiateAuth', { AuthFlow: 'USER_PASSWORD_AUTH', ClientId: cfg().client, AuthParameters: { USERNAME: u, PASSWORD: $('pass').value } });
+    if (res.ChallengeName === 'NEW_PASSWORD_REQUIRED') {
+      const nova = $('novaSenha').value;
+      if (!nova) { $('novaBox').style.display = 'block'; return log('Primeiro acesso: preencha a nova senha e clique em Entrar de novo.', 'info') }
+      res = await cognito('RespondToAuthChallenge', { ChallengeName: 'NEW_PASSWORD_REQUIRED', ClientId: cfg().client, Session: res.Session, ChallengeResponses: { USERNAME: u, NEW_PASSWORD: nova } });
+      $('novaSenha').value = ''; $('novaBox').style.display = 'none';
+    }
+    idToken = res.AuthenticationResult.IdToken;
+    const claims = JSON.parse(atob(idToken.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    prefixo = 'usuario-' + claims.sub + '/';
+    $('who').innerHTML = `<b>${claims['cognito:username']}</b><br>prefixo: ${prefixo}`;
+    $('pass').value = '';
+    document.querySelectorAll('.needAuth').forEach(b => b.disabled = false);
+    log(`Cognito OK: JWT recebido para ${claims['cognito:username']} (sub ${claims.sub})`, 'ok');
+    listar();
+  } catch (e) { log('Falha no login: ' + e.message, 'err') }
+}
+function sair() { idToken = null; prefixo = null; $('who').textContent = 'não autenticado'; document.querySelectorAll('.needAuth').forEach(b => b.disabled = true); $('lista').innerHTML = ''; log('Sessão encerrada', 'info') }
+
+async function api(method, path, body) {
+  const r = await fetch(cfg().api + path, { method, headers: { Authorization: idToken, 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
+  let j; try { j = await r.json() } catch { j = {} }
+  // a URL assinada é um "token ao portador": não aparece no registro
+  const visivel = JSON.stringify(j, (k, v) => (k === 'url' && typeof v === 'string' && v.includes('X-Amz-') ? '(URL pré-assinada omitida)' : k === 'fields' ? '(campos da política omitidos)' : v));
+  log(`${method} ${path} → ${r.status} ${visivel.slice(0, 240)}`, r.ok ? 'ok' : 'err');
+  return { status: r.status, body: j };
+}
+
+async function enviar() {
+  const f = $('file').files[0]; if (!f) return log('Escolha um arquivo', 'err');
+  const { status, body } = await api('POST', '/upload-url', { contentType: f.type, simularAntigo: $('antigo').checked });
+  if (status !== 200) return;
+  const fd = new FormData();
+  Object.entries(body.post.fields).forEach(([k, v]) => fd.append(k, v));
+  fd.append('file', f);
+  const r = await fetch(body.post.url, { method: 'POST', body: fd });
+  log(`POST direto no S3 (${body.post.url}) → ${r.status} ${r.status === 204 ? 'objeto gravado em ' + body.key : await r.text()}`, r.ok ? 'ok' : 'err');
+  listar();
+}
+
+async function listar() {
+  const { status, body } = await api('GET', '/files');
+  if (status !== 200) return;
+  $('lista').innerHTML = body.length ? '' : '<tr><td colspan="5" class="hint">Nenhum documento ainda.</td></tr>';
+  body.forEach(o => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td><code>${o.key}</code></td><td>${(o.tamanho / 1024).toFixed(0)} KB</td><td><span class="pill ${o.classe}">${o.classe}</span></td><td>${new Date(o.data).toLocaleString('pt-BR')}</td><td></td>`;
+    const b = document.createElement('button'); b.textContent = 'Baixar'; b.onclick = () => baixar(o.key);
+    tr.lastChild.appendChild(b);
+    if (o.classe === 'DEEP_ARCHIVE') { const rb = document.createElement('button'); rb.className = 'sec'; rb.style.marginLeft = '6px'; rb.textContent = 'Restaurar'; rb.onclick = () => api('POST', '/restore?key=' + encodeURIComponent(o.key)); tr.lastChild.appendChild(rb) }
+    $('lista').appendChild(tr);
+  });
+}
+
+async function baixar(key) {
+  const { status, body } = await api('GET', '/download-url?key=' + encodeURIComponent(key));
+  if (status === 200 && body.url) { window.open(body.url, '_blank'); log('URL de download válida por 5 min aberta em nova aba', 'info') }
+  if (status === 409) log('Documento arquivado em Deep Archive: é preciso restaurar antes (até 12 h).', 'info');
+}
+
+async function semToken() {
+  log('Chamando a API sem token e com um JWT forjado (como alguém de fora faria)...', 'info');
+  const r1 = await fetch(cfg().api + '/files');
+  log(`GET /files sem Authorization → ${r1.status} ${await r1.text()}`, r1.status === 401 ? 'ok' : 'err');
+  const r2 = await fetch(cfg().api + '/files', { headers: { Authorization: 'eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJmYWxzbyJ9.assinatura-falsa' } });
+  log(`GET /files com JWT forjado → ${r2.status} ${await r2.text()}`, r2.status === 401 ? 'ok' : 'err');
+  if (r1.status === 401 && r2.status === 401) log('Barrado no API Gateway: a Lambda nem chegou a ser executada.', 'ok');
+}
+
+async function atacar() {
+  const key = $('alvo').value.trim(); if (!key) return log('Informe a chave do objeto de outro usuário', 'err');
+  log(`Usuário de ${prefixo} tentando abrir ${key}`, 'info');
+  const { status, body } = await api('GET', '/download-url?key=' + encodeURIComponent(key));
+  if (status === 403) return log('BLOQUEADO na 1ª camada (checagem da aplicação).', 'ok');
+  if (body.url) {
+    log('A Lambda assinou a URL (bug simulado). Tentando usar no S3...', 'info');
+    const r = await fetch(body.url); const t = await r.text();
+    const code = (t.match(/<Code>(.*?)<\/Code>/) || [])[1] || '';
+    log(`GET direto no S3 → ${r.status} ${code}`, r.ok ? 'err' : 'ok');
+    if (!r.ok) log('BLOQUEADO na 2ª camada: a credencial do STS só alcança o prefixo do próprio usuário.', 'ok');
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arquitetura de Infraestrutura v2 | Gestão de Documentos para IA | Startup XYZ</title>
+<style>
+:root{
+  --navy:#0F2A4A; --navy-deep:#0A1D34; --aws-orange:#FF9900;
+  --purple:#6C3FC5; --purple-bg:#F2ECFB; --purple-line:#C9B3EE;
+  --lambda:#E8621A; --lambda-bg:#FDEBE0;
+  --green:#1E8E3E; --green-bg:#E7F5EA; --green-line:#A9DCB5;
+  --glacier:#2F5FD6; --glacier-bg:#E9EFFD;
+  --pink:#D6249F; --pink-bg:#FCE8F6;
+  --amber:#B26A00; --amber-bg:#FFF4DD;
+  --ink:#16202C; --ink-soft:#4C5A6B; --ink-faint:#7A8797;
+  --line:#DCE2EA; --line-soft:#E9EDF2; --page-bg:#EEF1F5; --card-bg:#FFFFFF;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--page-bg)}
+body{font-family:'Segoe UI',system-ui,-apple-system,Roboto,Arial,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased}
+#poster{width:1600px;margin:0 auto;background:var(--page-bg);padding-bottom:26px}
+
+/* HEADER */
+#header{background:linear-gradient(135deg,var(--navy) 0%,var(--navy-deep) 100%);padding:30px 46px 26px;display:flex;align-items:center;gap:28px;position:relative;overflow:hidden}
+#header::after{content:'';position:absolute;inset:0;background:radial-gradient(circle at 85% -20%,rgba(255,153,0,.12),transparent 55%);pointer-events:none}
+#brand{display:flex;align-items:center;gap:14px;padding-right:28px;border-right:1px solid rgba(255,255,255,.18)}
+#brand-mark{width:52px;height:52px;border-radius:12px;background:linear-gradient(135deg,#2C6BF2,#1746A8);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:24px;color:#fff;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+#brand-name{font-size:26px;font-weight:800;color:#fff;letter-spacing:.3px}
+#header-title{flex:1;min-width:0}
+#header-title h1{font-size:29px;font-weight:800;color:#fff;margin-bottom:5px}
+#header-subline{display:flex;align-items:center;gap:9px;flex-wrap:wrap;font-size:13.5px;color:rgba(255,255,255,.78);font-weight:500}
+#header-subline .dot{width:3px;height:3px;border-radius:50%;background:rgba(255,255,255,.45)}
+#header-desc{max-width:340px;font-size:12.3px;line-height:1.55;color:rgba(255,255,255,.82);border-left:1px solid rgba(255,255,255,.18);padding-left:22px}
+#header-aws{flex-shrink:0;padding-left:8px}
+#header-aws svg{width:66px;height:auto}
+.v2-tag{display:inline-block;background:var(--aws-orange);color:var(--navy-deep);font-size:11px;font-weight:800;padding:2px 8px;border-radius:10px;margin-left:8px;vertical-align:middle}
+
+/* DIAGRAM */
+#diagram-zone{margin:22px 40px 0;background:#FAFBFC;border:1px solid var(--line);border-radius:14px;padding:18px 20px 16px}
+#diagram-svg{width:100%;height:auto;display:block}
+#diagram-svg text{font-family:'Segoe UI',system-ui,-apple-system,Roboto,Arial,sans-serif}
+.nt{font-size:15px;font-weight:800}
+.ns{font-size:12px;fill:#4C5A6B}
+.nl{font-size:12px;fill:#16202C}
+.nb{font-size:11.5px;font-weight:800;fill:#fff;text-anchor:middle}
+.lbl{font-size:12px;fill:#16202C;font-weight:600}
+.lbl-s{font-size:11px;fill:#4C5A6B}
+#legend{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-top:10px;padding-top:12px;border-top:1px dashed var(--line)}
+.lg{display:flex;gap:8px;align-items:flex-start;font-size:11.2px;line-height:1.4;color:var(--ink-soft)}
+.lg b{color:var(--ink)}
+.lg-n{width:20px;height:20px;border-radius:50%;background:var(--navy);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.lg-n.ret{background:var(--green)}
+
+/* CARDS */
+.row{display:grid;gap:16px;margin:16px 40px 0}
+#row1{grid-template-columns:repeat(4,1fr);margin-top:20px}
+#row2{grid-template-columns:1.25fr 1fr 1.05fr}
+#row3{grid-template-columns:1fr 1fr 1fr}
+.info-card{background:var(--card-bg);border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
+.card-head{background:var(--navy);color:#fff;padding:10px 15px;display:flex;align-items:center;gap:9px;font-size:13.5px;font-weight:800}
+.card-head.warn{background:#7A3E00}
+.card-num{min-width:21px;height:21px;border-radius:11px;padding:0 5px;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0}
+.card-body{padding:13px 15px 15px;flex:1}
+.card-body p{font-size:11.2px;color:var(--ink-soft);line-height:1.5}
+.card-body p+p{margin-top:7px}
+.card-body b{color:var(--ink)}
+code{font-family:'Consolas','SF Mono',monospace;background:var(--line-soft);padding:1px 4px;border-radius:3px;font-size:10.6px;color:var(--ink)}
+
+.step-item{display:flex;gap:10px;margin-bottom:11px;position:relative}
+.step-item:last-child{margin-bottom:0}
+.step-item::before{content:'';position:absolute;left:10px;top:23px;bottom:-11px;width:1.4px;background:var(--line)}
+.step-item:last-child::before{display:none}
+.step-num{width:21px;height:21px;border-radius:50%;background:var(--navy);color:#fff;font-size:10.5px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;z-index:1}
+.step-txt b{display:block;font-size:12px;font-weight:800;color:var(--ink);margin-bottom:2px}
+.step-txt p{font-size:10.8px;color:var(--ink-soft);line-height:1.42}
+
+.blk{display:flex;gap:10px;margin-bottom:11px}
+.blk:last-child{margin-bottom:0}
+.blk-ico{width:30px;height:30px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px}
+.blk-info b{display:block;font-size:12px;font-weight:800;color:var(--ink);margin-bottom:3px}
+.blk-info ul{list-style:none}
+.blk-info li{font-size:10.6px;color:var(--ink-soft);line-height:1.45;padding-left:11px;position:relative}
+.blk-info li::before{content:'•';position:absolute;left:0;color:var(--ink-faint)}
+
+.why-block{margin-bottom:11px}
+.why-block:last-child{margin-bottom:0}
+.why-vs{display:block;font-size:11.2px;font-weight:800;color:var(--ink);margin-bottom:3px}
+.why-vs .discarded{color:#B23A3A;text-decoration:line-through;font-weight:600}
+.why-vs .arrow-sep{color:var(--ink-faint);margin:0 3px}
+.why-vs .chosen{color:var(--green)}
+.why-block p{font-size:10.6px;color:var(--ink-soft);line-height:1.45}
+
+pre{background:#0F2A4A;color:#DCE8F7;font-family:'Consolas','SF Mono',monospace;font-size:10.4px;line-height:1.5;padding:10px 12px;border-radius:8px;margin:9px 0;white-space:pre-wrap;word-break:break-word}
+pre .k{color:#FFB84D}
+pre .s{color:#8FE0A3}
+.callout{background:var(--amber-bg);border-left:3px solid var(--aws-orange);border-radius:6px;padding:8px 10px;font-size:10.6px;color:#5A3A00;line-height:1.5;margin-top:8px}
+.callout b{color:#5A3A00}
+.callout.ok{background:var(--green-bg);border-left-color:var(--green);color:#14522A}
+.callout.ok b{color:#14522A}
+.callout.pur{background:var(--purple-bg);border-left-color:var(--purple);color:#2D1A5C}
+.callout.pur b{color:#2D1A5C}
+
+#folder-tree{font-size:11px;line-height:1.65;color:var(--ink-soft);font-family:'Consolas','SF Mono',monospace;background:#FAFBFC;border:1.4px dashed #A87FE0;border-radius:8px;padding:9px 12px;margin-bottom:9px}
+#folder-tree .f-dir{color:var(--purple);font-weight:700}
+#folder-tree .f-file{color:var(--ink)}
+.bl{list-style:none;margin-top:8px}
+.bl li{font-size:10.6px;color:var(--ink-soft);line-height:1.45;padding-left:14px;position:relative;margin-bottom:4px}
+.bl li::before{content:'✓';position:absolute;left:0;color:var(--green);font-weight:800}
+.bl.x li::before{content:'•';color:var(--ink-faint)}
+
+table.t{width:100%;border-collapse:collapse;margin-bottom:8px}
+table.t th{font-size:9.8px;text-transform:uppercase;letter-spacing:.03em;color:var(--ink-faint);text-align:left;padding:0 6px 6px;border-bottom:1.4px solid var(--line);font-weight:800}
+table.t td{font-size:10.8px;padding:7px 6px;border-bottom:1px solid var(--line-soft);color:var(--ink);vertical-align:top;line-height:1.4}
+table.t tr:last-child td{border-bottom:none}
+table.t td.strong{font-weight:800}
+.pill{display:inline-block;padding:2px 8px;border-radius:10px;font-size:9.8px;font-weight:700}
+.pill.standard{background:var(--green-bg);color:var(--green)}
+.pill.glacier{background:var(--glacier-bg);color:var(--glacier)}
+
+#evo{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}
+.evo-i{background:#F6F8FB;border:1px solid var(--line-soft);border-radius:9px;padding:10px 11px}
+.evo-i b{display:block;font-size:11.4px;color:var(--ink);margin-bottom:4px}
+.evo-i p{font-size:10.4px;color:var(--ink-soft);line-height:1.45}
+
+#footer{margin:22px 40px 0;background:var(--navy);border-radius:12px;padding:14px 26px;display:flex;align-items:center;justify-content:space-between;color:#fff}
+#footer-left{display:flex;align-items:center;gap:14px}
+#footer-left .f-mark{width:30px;height:30px;border-radius:8px;background:rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px}
+#footer-left span{font-size:12px;color:rgba(255,255,255,.85)}
+#footer-tags span{white-space:nowrap}
+#footer-left span{max-width:820px}
+table.t td:first-child{white-space:nowrap}
+#row3 table.t td:first-child{white-space:normal}
+#footer-tags{display:flex;align-items:center;gap:16px;font-size:11.5px;color:rgba(255,255,255,.75);font-weight:600}
+#footer-tags .ft-dot{width:3px;height:3px;border-radius:50%;background:rgba(255,255,255,.4)}
+</style>
+</head>
+<body>
+<div id="poster">
+
+  <!-- HEADER -->
+  <div id="header">
+    <div id="brand">
+      <div id="brand-mark">X</div>
+      <div id="brand-name">XYZ</div>
+    </div>
+    <div id="header-title">
+      <h1>Arquitetura de Infraestrutura<span class="v2-tag">v2</span></h1>
+      <div id="header-subline">
+        <span>Gestão de Documentos para IA</span><span class="dot"></span>
+        <span>Serverless</span><span class="dot"></span>
+        <span>Segura</span><span class="dot"></span>
+        <span>Escalável</span><span class="dot"></span>
+        <span>Otimizada em Custo</span>
+      </div>
+    </div>
+    <div id="header-desc">
+      Infraestrutura serverless para receber, isolar, proteger e preservar documentos. O arquivo trafega direto para o S3 por URL pré-assinada, e o ciclo de vida do dado reduz o custo do histórico sem apagá-lo.
+    </div>
+    <div id="header-aws">
+      <svg viewBox="0 0 120 72" xmlns="http://www.w3.org/2000/svg">
+        <text x="0" y="46" font-family="Arial,sans-serif" font-weight="800" font-size="46" fill="#fff" letter-spacing="-1">aws</text>
+        <path d="M4 58c22 12 88 12 112 0" stroke="#FF9900" stroke-width="5" fill="none" stroke-linecap="round"/>
+        <path d="M108 52l10 4-4 10" stroke="#FF9900" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+  </div>
+
+  <!-- DIAGRAM -->
+  <div id="diagram-zone">
+    <svg id="diagram-svg" viewBox="0 0 1520 520" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#0F2A4A"/></marker>
+        <marker id="ahg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#1E8E3E"/></marker>
+        <marker id="aho" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#B26A00"/></marker>
+      </defs>
+
+      <!-- AWS boundary -->
+      <rect x="250" y="20" width="1250" height="490" rx="12" fill="none" stroke="#9AA7B6" stroke-width="1.8" stroke-dasharray="7 5"/>
+      <rect x="266" y="8" width="176" height="24" fill="#FAFBFC"/>
+      <rect x="270" y="10" width="20" height="20" rx="4" fill="#0A1D34"/>
+      <text x="280" y="24" font-size="8" font-weight="800" fill="#fff" text-anchor="middle">aws</text>
+      <text x="298" y="25" font-size="12.5" font-weight="700" fill="#0F2A4A">AWS Cloud (uma região)</text>
+
+      <!-- Cliente -->
+      <rect x="20" y="170" width="170" height="130" rx="11" fill="#fff" stroke="#B9C3CF" stroke-width="1.6"/>
+      <circle cx="105" cy="205" r="17" fill="#EEF1F4"/>
+      <path d="M105 205c2.2 0 4-1.8 4-4s-1.8-4-4-4-4 1.8-4 4 1.8 4 4 4zm0 2c-3.3 0-8 1.7-8 5v2h16v-2c0-3.3-4.7-5-8-5z" fill="#3A4A5C"/>
+      <text x="105" y="242" text-anchor="middle" class="nt" fill="#16202C">Cliente</text>
+      <text x="105" y="258" text-anchor="middle" class="ns">App / Web</text>
+      <text x="105" y="278" text-anchor="middle" class="ns">PDF / imagem + JWT</text>
+
+      <!-- Cognito -->
+      <rect x="290" y="50" width="170" height="80" rx="11" fill="#FCE8F6" stroke="#E7A6D6" stroke-width="1.6"/>
+      <text x="375" y="83" text-anchor="middle" class="nt" fill="#D6249F">Amazon Cognito</text>
+      <text x="375" y="102" text-anchor="middle" class="ns">User Pool · OIDC · JWT</text>
+      <text x="375" y="118" text-anchor="middle" class="ns">identidade = claim sub</text>
+
+      <!-- API Gateway -->
+      <rect x="290" y="200" width="170" height="100" rx="11" fill="#F2ECFB" stroke="#C9B3EE" stroke-width="1.6"/>
+      <text x="375" y="235" text-anchor="middle" class="nt" fill="#6C3FC5">API Gateway</text>
+      <text x="375" y="254" text-anchor="middle" class="ns">HTTP API</text>
+      <text x="375" y="270" text-anchor="middle" class="ns">JWT authorizer + throttling</text>
+      <text x="375" y="286" text-anchor="middle" class="ns">HTTPS / domínio próprio</text>
+
+      <!-- Lambda -->
+      <rect x="560" y="200" width="180" height="100" rx="11" fill="#FDEBE0" stroke="#F3B694" stroke-width="1.6"/>
+      <text x="650" y="235" text-anchor="middle" class="nt" fill="#E8621A">AWS Lambda</text>
+      <text x="650" y="254" text-anchor="middle" class="ns">autoriza pelo sub do token</text>
+      <text x="650" y="270" text-anchor="middle" class="ns">gera URL pré-assinada</text>
+      <text x="650" y="286" text-anchor="middle" class="ns">(não recebe o arquivo)</text>
+
+      <!-- STS -->
+      <rect x="560" y="50" width="180" height="80" rx="11" fill="#EEF1F4" stroke="#B9C3CF" stroke-width="1.6"/>
+      <text x="650" y="83" text-anchor="middle" class="nt" fill="#0F2A4A">AWS STS</text>
+      <text x="650" y="102" text-anchor="middle" class="ns">AssumeRole + session policy</text>
+      <text x="650" y="118" text-anchor="middle" class="ns">credencial de 15 min</text>
+
+      <!-- S3 -->
+      <rect x="860" y="150" width="380" height="210" rx="12" fill="#E7F5EA" stroke="#1E8E3E" stroke-width="1.8"/>
+      <text x="880" y="180" class="nt" fill="#1E8E3E">Amazon S3</text>
+      <text x="985" y="180" class="ns">bucket privado · prefixo por usuário</text>
+      <rect x="880" y="200" width="150" height="130" rx="9" fill="#fff" stroke="#A9DCB5" stroke-width="1.4"/>
+      <text x="955" y="228" text-anchor="middle" class="nt" fill="#1E8E3E" style="font-size:14px">S3 Standard</text>
+      <text x="955" y="250" text-anchor="middle" class="nl">0 a 365 dias</text>
+      <text x="955" y="268" text-anchor="middle" class="ns">acesso em milissegundos</text>
+      <text x="955" y="290" text-anchor="middle" class="ns">SSE-KMS · versioning</text>
+      <text x="955" y="308" text-anchor="middle" class="ns">operacional para o cliente</text>
+      <rect x="1090" y="200" width="130" height="130" rx="9" fill="#E9EFFD" stroke="#B9C9F5" stroke-width="1.4"/>
+      <text x="1155" y="222" text-anchor="middle" class="nt" fill="#2F5FD6" style="font-size:13px">Glacier</text>
+      <text x="1155" y="238" text-anchor="middle" class="nt" fill="#2F5FD6" style="font-size:13px">Deep Archive</text>
+      <text x="1155" y="258" text-anchor="middle" class="ns">storage class</text>
+      <text x="1155" y="278" text-anchor="middle" class="nl">&gt; 365 dias</text>
+      <text x="1155" y="296" text-anchor="middle" class="ns">restore em horas</text>
+      <text x="1155" y="312" text-anchor="middle" class="ns">retenção histórica</text>
+      <line x1="1032" y1="272" x2="1088" y2="272" stroke="#0F2A4A" stroke-width="2" marker-end="url(#ah)"/>
+      <text x="1060" y="262" text-anchor="middle" class="lbl-s" style="font-weight:800;fill:#0F2A4A">365d</text>
+      <text x="1050" y="349" text-anchor="middle" class="lbl-s">Lifecycle no mesmo bucket: muda só a storage class</text>
+
+      <!-- KMS -->
+      <rect x="1290" y="50" width="190" height="80" rx="11" fill="#E7F5EA" stroke="#A9DCB5" stroke-width="1.6"/>
+      <text x="1385" y="83" text-anchor="middle" class="nt" fill="#1E8E3E">AWS KMS</text>
+      <text x="1385" y="102" text-anchor="middle" class="ns">chave gerenciada (CMK)</text>
+      <text x="1385" y="118" text-anchor="middle" class="ns">rotação + auditoria</text>
+
+      <!-- Controles do bucket -->
+      <rect x="1290" y="170" width="190" height="190" rx="11" fill="#fff" stroke="#A9DCB5" stroke-width="1.6" stroke-dasharray="6 4"/>
+      <text x="1302" y="192" class="nl" style="font-weight:800;fill:#1E8E3E;font-size:12.5px">Controles do bucket</text>
+      <text x="1302" y="215" class="lbl-s">✓ Block Public Access (total)</text>
+      <text x="1302" y="236" class="lbl-s">✓ SSE-KMS + Bucket Keys</text>
+      <text x="1302" y="257" class="lbl-s">✓ Deny sem TLS / sem SSE-KMS</text>
+      <text x="1302" y="278" class="lbl-s">✓ Versioning + expira versões</text>
+      <text x="1302" y="299" class="lbl-s">✓ CORS restrito ao domínio</text>
+      <text x="1302" y="320" class="lbl-s">✓ Presigned POST com limites</text>
+      <text x="1302" y="341" class="lbl-s">○ Object Lock (opcional)</text>
+
+      <!-- Segurança de eventos -->
+      <rect x="860" y="420" width="170" height="70" rx="11" fill="#FDECEC" stroke="#E7A0A0" stroke-width="1.6"/>
+      <text x="945" y="449" text-anchor="middle" class="nt" fill="#B23A3A" style="font-size:13px">GuardDuty</text>
+      <text x="945" y="466" text-anchor="middle" class="ns">Malware Protection for S3</text>
+      <text x="945" y="481" text-anchor="middle" class="ns">escaneia objeto novo</text>
+
+      <rect x="1070" y="420" width="170" height="70" rx="11" fill="#FDEBE0" stroke="#F3B694" stroke-width="1.6"/>
+      <text x="1155" y="449" text-anchor="middle" class="nt" fill="#E8621A" style="font-size:13px">EventBridge</text>
+      <text x="1155" y="466" text-anchor="middle" class="ns">roteia o resultado</text>
+      <text x="1155" y="481" text-anchor="middle" class="ns">(não é antimalware)</text>
+
+      <rect x="1290" y="420" width="190" height="70" rx="11" fill="#FCE8F6" stroke="#E7A6D6" stroke-width="1.6"/>
+      <text x="1385" y="449" text-anchor="middle" class="nt" fill="#D6249F" style="font-size:13px">SNS / Lambda</text>
+      <text x="1385" y="466" text-anchor="middle" class="ns">alerta e quarentena</text>
+      <text x="1385" y="481" text-anchor="middle" class="ns">do arquivo infectado</text>
+
+      <!-- Observabilidade -->
+      <rect x="290" y="420" width="250" height="70" rx="11" fill="#FCE8F6" stroke="#E7A6D6" stroke-width="1.6"/>
+      <text x="415" y="449" text-anchor="middle" class="nt" fill="#D6249F" style="font-size:13px">CloudWatch + CloudTrail</text>
+      <text x="415" y="466" text-anchor="middle" class="ns">logs, métricas, alarmes e auditoria</text>
+      <text x="415" y="481" text-anchor="middle" class="ns">de API, Lambda, S3 e KMS</text>
+
+      <rect x="560" y="420" width="270" height="70" rx="11" fill="#fff" stroke="#9AA7B6" stroke-width="1.4" stroke-dasharray="5 4"/>
+      <text x="695" y="449" text-anchor="middle" class="nt" fill="#4C5A6B" style="font-size:13px">Sem VPC (decisão intencional)</text>
+      <text x="695" y="466" text-anchor="middle" class="ns">nada exige rede privada; o controle</text>
+      <text x="695" y="481" text-anchor="middle" class="ns">está em IAM, bucket policy e TLS</text>
+
+      <!-- Arrows -->
+      <!-- 1 login -->
+      <path d="M105 170 L105 90 L288 90" fill="none" stroke="#0F2A4A" stroke-width="2" marker-end="url(#ah)"/>
+      <circle cx="105" cy="130" r="11" fill="#0F2A4A"/><text x="105" y="134" class="nb">1</text>
+      <text x="122" y="76" class="lbl">Login, recebe JWT</text>
+      <!-- 2 request -->
+      <line x1="190" y1="235" x2="288" y2="235" stroke="#0F2A4A" stroke-width="2" marker-end="url(#ah)"/>
+      <circle cx="240" cy="221" r="11" fill="#0F2A4A"/><text x="240" y="225" class="nb">2</text>
+      <!-- authorizer -->
+      <line x1="375" y1="130" x2="375" y2="198" stroke="#6C3FC5" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#ah)"/>
+      <text x="386" y="166" class="lbl-s">authorizer valida o JWT</text>
+      <!-- 3 invoke -->
+      <line x1="460" y1="235" x2="558" y2="235" stroke="#0F2A4A" stroke-width="2" marker-end="url(#ah)"/>
+      <circle cx="510" cy="221" r="11" fill="#0F2A4A"/><text x="510" y="225" class="nb">3</text>
+      <!-- 4 STS -->
+      <line x1="650" y1="200" x2="650" y2="132" stroke="#0F2A4A" stroke-width="2" marker-start="url(#ah)" marker-end="url(#ah)"/>
+      <circle cx="650" cy="166" r="11" fill="#0F2A4A"/><text x="650" y="170" class="nb">4</text>
+      <text x="668" y="162" class="lbl-s">session policy:</text>
+      <text x="668" y="177" class="lbl-s">só o prefixo do usuário</text>
+      <!-- 5 return -->
+      <line x1="560" y1="270" x2="462" y2="270" stroke="#1E8E3E" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#ahg)"/>
+      <line x1="290" y1="270" x2="192" y2="270" stroke="#1E8E3E" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#ahg)"/>
+      <circle cx="240" cy="286" r="11" fill="#1E8E3E"/><text x="240" y="290" class="nb">5</text>
+      <text x="200" y="316" class="lbl-s" style="fill:#1E8E3E;font-weight:700">URL pré-assinada</text>
+      <!-- 6 direct -->
+      <path d="M105 300 L105 392 L800 392 L800 322 L858 322" fill="none" stroke="#1E8E3E" stroke-width="2.4" marker-end="url(#ahg)"/>
+      <circle cx="105" cy="350" r="11" fill="#1E8E3E"/><text x="105" y="354" class="nb">6</text>
+      <text x="140" y="382" class="lbl" style="fill:#1E8E3E">PUT / GET direto no S3 com a URL (sem passar por API Gateway nem Lambda)</text>
+      <!-- S3 to KMS -->
+      <path d="M1200 150 L1200 90 L1288 90" fill="none" stroke="#1E8E3E" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#ahg)"/>
+      <text x="1120" y="112" class="lbl-s">cifra com SSE-KMS</text>
+      <!-- S3 to GuardDuty -->
+      <line x1="945" y1="362" x2="945" y2="418" stroke="#B26A00" stroke-width="1.8" marker-end="url(#aho)"/>
+      <text x="954" y="398" class="lbl-s">objeto novo</text>
+      <line x1="1032" y1="455" x2="1068" y2="455" stroke="#B26A00" stroke-width="1.8" marker-end="url(#aho)"/>
+      <line x1="1242" y1="455" x2="1288" y2="455" stroke="#B26A00" stroke-width="1.8" marker-end="url(#aho)"/>
+    </svg>
+
+    <div id="legend">
+      <div class="lg"><div class="lg-n">1</div><div><b>Login.</b> O usuário autentica no Cognito e recebe o JWT.</div></div>
+      <div class="lg"><div class="lg-n">2</div><div><b>Pedido.</b> App chama a API com o JWT; o authorizer valida.</div></div>
+      <div class="lg"><div class="lg-n">3</div><div><b>Autorização.</b> Lambda lê o <code>sub</code> do token, nunca do corpo.</div></div>
+      <div class="lg"><div class="lg-n">4</div><div><b>Credencial escopada.</b> STS entrega acesso só ao prefixo do usuário.</div></div>
+      <div class="lg"><div class="lg-n ret">5</div><div><b>URL devolvida.</b> A API responde com a URL, válida por até 15 min.</div></div>
+      <div class="lg"><div class="lg-n ret">6</div><div><b>Transferência direta.</b> O cliente envia ou baixa direto do S3.</div></div>
+    </div>
+  </div>
+
+  <!-- ROW 1 -->
+  <div class="row" id="row1">
+
+    <div class="info-card">
+      <div class="card-head"><div class="card-num">1</div>Fluxo da Requisição</div>
+      <div class="card-body">
+        <div class="step-item"><div class="step-num">1</div><div class="step-txt"><b>Autenticação</b><p>Login no Cognito (OIDC). O token traz o <code>sub</code>, que identifica o usuário.</p></div></div>
+        <div class="step-item"><div class="step-num">2</div><div class="step-txt"><b>Requisição ao API Gateway</b><p>O app pede upload ou download. O JWT authorizer rejeita token inválido ou expirado antes de chamar a Lambda.</p></div></div>
+        <div class="step-item"><div class="step-num">3</div><div class="step-txt"><b>Autorização na Lambda</b><p>Define o prefixo <code>usuario-{sub}/</code> a partir do token e gera o nome do objeto (UUID).</p></div></div>
+        <div class="step-item"><div class="step-num">4</div><div class="step-txt"><b>Credencial escopada</b><p>AssumeRole com session policy limitada ao prefixo; a URL é assinada com essa credencial.</p></div></div>
+        <div class="step-item"><div class="step-num">5</div><div class="step-txt"><b>Transferência direta</b><p>O cliente usa a URL no S3. Lambda (6 MB) e API Gateway (10 MB) têm limite de payload, por isso o arquivo não passa por eles.</p></div></div>
+        <div class="step-item"><div class="step-num">6</div><div class="step-txt"><b>Armazenamento e ciclo de vida</b><p>Objeto cifrado com SSE-KMS. Após 365 dias a storage class muda para Deep Archive.</p></div></div>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <div class="card-head"><div class="card-num">2</div>Detalhes de Implementação</div>
+      <div class="card-body">
+        <div class="blk"><div class="blk-ico" style="background:var(--pink-bg)">👤</div><div class="blk-info"><b>Cognito</b><ul><li>User Pool com OIDC e JWT de curta duração</li><li>MFA opcional para contas sensíveis</li></ul></div></div>
+        <div class="blk"><div class="blk-ico" style="background:var(--purple-bg)">🚪</div><div class="blk-info"><b>API Gateway (HTTP API)</b><ul><li>JWT authorizer nativo e throttling por rota</li><li>Domínio próprio com HTTPS</li><li>REST API só se precisarem de WAF ou usage plans</li></ul></div></div>
+        <div class="blk"><div class="blk-ico" style="background:var(--lambda-bg)">λ</div><div class="blk-info"><b>Lambda</b><ul><li>Prefixo vem do token, nunca do input do cliente</li><li>AssumeRole com session policy por requisição</li><li>Presigned POST com tamanho e content-type limitados</li></ul></div></div>
+        <div class="blk"><div class="blk-ico" style="background:var(--green-bg)">🪣</div><div class="blk-info"><b>S3</b><ul><li>Bucket privado, Block Public Access, Bucket Keys</li><li>Bucket policy nega tráfego sem TLS e PUT sem SSE-KMS</li><li>Lifecycle: Deep Archive, versões antigas e multipart incompleto</li></ul></div></div>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <div class="card-head"><div class="card-num">3</div>Segurança e Acesso</div>
+      <div class="card-body">
+        <div class="blk"><div class="blk-ico" style="background:var(--green-bg)">🛡️</div><div class="blk-info"><b>Autorização de verdade</b><ul><li>Menor privilégio: role base mínima da Lambda</li><li>Session policy reduz o acesso ao prefixo do usuário</li></ul></div></div>
+        <div class="blk"><div class="blk-ico" style="background:var(--green-bg)">🔐</div><div class="blk-info"><b>Dados</b><ul><li>SSE-KMS com chave própria e rotação</li><li>TLS obrigatório, Block Public Access</li><li>Versioning contra sobrescrita e exclusão</li></ul></div></div>
+        <div class="blk"><div class="blk-ico" style="background:var(--green-bg)">📥</div><div class="blk-info"><b>Upload endurecido</b><ul><li>Limite de tamanho, tipo e chave (starts-with)</li><li>URL de 15 min, escopo de um objeto</li><li>Malware scan com GuardDuty</li></ul></div></div>
+        <div class="blk"><div class="blk-ico" style="background:var(--green-bg)">📊</div><div class="blk-info"><b>Auditoria</b><ul><li>CloudTrail com data events do S3 e uso do KMS</li><li>Alarmes de 4xx/5xx, throttling e acesso negado</li></ul></div></div>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <div class="card-head"><div class="card-num">4</div>Por que essa Escolha</div>
+      <div class="card-body">
+        <div class="why-block"><span class="why-vs"><span class="discarded">EC2 fixo</span><span class="arrow-sep">→</span><span class="chosen">Serverless</span></span><p>Ingestão variável (~50 mil/mês). O custo acompanha o uso, sem servidor ocioso.</p></div>
+        <div class="why-block"><span class="why-vs"><span class="discarded">Lambda Function URL</span><span class="arrow-sep">→</span><span class="chosen">API Gateway</span></span><p>Authorizer JWT, throttling e domínio próprio, com contrato de API desacoplado.</p></div>
+        <div class="why-block"><span class="why-vs"><span class="discarded">EFS / FSx</span><span class="arrow-sep">→</span><span class="chosen">S3</span></span><p>Objetos imutáveis, 11 noves de durabilidade e classes de custo para arquivo.</p></div>
+        <div class="why-block"><span class="why-vs"><span class="discarded">SSE-S3</span><span class="arrow-sep">→</span><span class="chosen">SSE-KMS</span></span><p>Controle da chave, trilha no CloudTrail e possibilidade de revogar. Não é exigência da LGPD, é uma boa prática de governança.</p></div>
+        <div class="why-block"><span class="why-vs"><span class="discarded">1 bucket por cliente</span><span class="arrow-sep">→</span><span class="chosen">1 bucket + prefixo</span></span><p>Uma política, um lifecycle e uma chave para todos. Escala sem multiplicar recursos.</p></div>
+        <div class="why-block"><span class="why-vs"><span class="discarded">Glacier Instant</span><span class="arrow-sep">→</span><span class="chosen">Deep Archive</span></span><p>Após 12 meses o dado vira retenção, sem SLA de minutos. Menor custo por GB.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW 2 -->
+  <div class="row" id="row2">
+
+    <div class="info-card">
+      <div class="card-head"><div class="card-num">5</div>Isolamento por Credencial, não por Convenção</div>
+      <div class="card-body">
+        <p><b>O risco no desenho simples:</b> uma Lambda com role que acessa o bucket inteiro e escolhe o prefixo no código. Um bug de autorização (IDOR, path traversal) e o usuário A lê os arquivos do usuário B.</p>
+        <p><b>A solução:</b> a cada requisição a Lambda chama <code>sts:AssumeRole</code> passando uma session policy restrita ao prefixo do usuário. A permissão efetiva é a interseção da role com a session policy, e a URL é assinada com essa credencial temporária. Mesmo com bug, ela não alcança outro prefixo, e expira junto com a sessão (mínimo de 15 min).</p>
+<pre>{ <span class="k">"Effect"</span>: <span class="s">"Allow"</span>,
+  <span class="k">"Action"</span>: [<span class="s">"s3:GetObject"</span>, <span class="s">"s3:PutObject"</span>],
+  <span class="k">"Resource"</span>: <span class="s">"arn:aws:s3:::xyz-docs/usuario-123/*"</span> }
+<i style="color:#8FA3BF">// + kms:GenerateDataKey e kms:Decrypt na chave do bucket</i></pre>
+        <div class="callout"><b>Detalhe técnico:</b> a condition key <code>s3:prefix</code> vale só para <code>ListBucket</code>. Para Get e Put, a restrição vai no ARN do recurso, como acima.</div>
+        <div class="callout pur"><b>Para escalar:</b> ABAC com session tags (<code>aws:PrincipalTag</code>) permite uma única policy com o prefixo montado a partir da tag do usuário.</div>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <div class="card-head"><div class="card-num">6</div>Estrutura de Objetos e Upload Seguro</div>
+      <div class="card-body">
+        <div id="folder-tree">
+          <div><span class="f-dir">usuario-123/</span></div>
+          <div>&nbsp;&nbsp;└─ 2026/</div>
+          <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├─ <span class="f-file">7f3a91c2-….pdf</span></div>
+          <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└─ <span class="f-file">b20e4d18-….png</span></div>
+          <div style="margin-top:4px"><span class="f-dir">usuario-456/</span></div>
+          <div>&nbsp;&nbsp;└─ 2026/ …</div>
+        </div>
+        <p>O prefixo faz parte da estratégia de isolamento. O nome do arquivo é um UUID gerado no servidor, e o nome original fica em metadata, evitando colisão e nomes maliciosos.</p>
+        <ul class="bl">
+          <li>Presigned POST com <code>content-length-range</code></li>
+          <li>Chave limitada por <code>starts-with</code> ao prefixo</li>
+          <li>Content-Type validado na policy do POST</li>
+          <li>CORS restrito ao domínio do app</li>
+          <li>Novo objeto escaneado pelo GuardDuty e etiquetado</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <div class="card-head"><div class="card-num">7</div>Lifecycle: a Equação Financeira</div>
+      <div class="card-body">
+        <table class="t">
+          <thead><tr><th>Fase</th><th>Classe</th><th>Custo</th><th>Acesso</th></tr></thead>
+          <tbody>
+            <tr><td class="strong">0–365 dias</td><td><span class="pill standard">S3 Standard</span></td><td class="strong">Base</td><td>Milissegundos</td></tr>
+            <tr><td class="strong">365+ dias</td><td><span class="pill glacier">Deep Archive</span></td><td class="strong" style="color:var(--green)">≈ 4–5% do Standard</td><td>Restore: ~12 h (padrão), até 48 h (bulk)</td></tr>
+          </tbody>
+        </table>
+        <ul class="bl x">
+          <li>Deep Archive tem retenção mínima de 180 dias e cobra restore e requests.</li>
+          <li>Objetos menores que 128 KB não transicionam por padrão.</li>
+          <li>Transição custa cerca de US$ 0,05 por mil objetos; 50 mil por mês dão ordem de US$ 2,50.</li>
+          <li>Versões não correntes expiram (ex.: 90 dias) e multipart incompleto é abortado em 7 dias.</li>
+        </ul>
+        <div class="callout ok"><b>Ressalva para IA:</b> se o treino de modelos ler o histórico com frequência, use Glacier Instant Retrieval, ou planeje restores em lote com S3 Batch Operations.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW 3 -->
+  <div class="row" id="row3">
+
+    <div class="info-card">
+      <div class="card-head"><div class="card-num">8</div>Resiliência e Recuperação</div>
+      <div class="card-body">
+        <div class="blk"><div class="blk-ico" style="background:var(--green-bg)">🏢</div><div class="blk-info"><b>Multi-AZ gerenciado</b><ul><li>S3 Standard replica em 3 ou mais AZs (11 noves de durabilidade)</li><li>API Gateway, Lambda, Cognito e KMS são regionais e multi-AZ, sem instância para cair</li></ul></div></div>
+        <div class="blk"><div class="blk-ico" style="background:var(--green-bg)">⚙️</div><div class="blk-info"><b>Se algo falhar</b><ul><li>Throttling (429): retry com backoff no cliente</li><li>URL expirada: o app pede uma nova</li><li>Sobrescrita ou exclusão: versioning restaura</li></ul></div></div>
+        <div class="blk"><div class="blk-ico" style="background:var(--glacier-bg)">⏱️</div><div class="blk-info"><b>Metas</b><ul><li>RPO próximo de zero nos dados</li><li>RTO imediato no Standard; horas no Deep Archive</li><li>Falha de região não é coberta hoje; evolução: replicação entre regiões e IaC para recriar a stack</li></ul></div></div>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <div class="card-head"><div class="card-num">9</div>Custos e Otimização</div>
+      <div class="card-body">
+        <table class="t">
+          <thead><tr><th>Item (estimativa mensal)</th><th>Valor</th></tr></thead>
+          <tbody>
+            <tr><td>S3 Standard, janela de 12 meses (~600 GB)</td><td class="strong">≈ US$ 14</td></tr>
+            <tr><td>Deep Archive, 3 anos acumulados (~1,8 TB)</td><td class="strong">≈ US$ 2</td></tr>
+            <tr><td>Transições de lifecycle (50 mil objetos/mês)</td><td class="strong">≈ US$ 2,5</td></tr>
+            <tr><td>API Gateway, Lambda, Cognito, KMS</td><td class="strong">≈ US$ 1 a 5</td></tr>
+            <tr><td class="strong">Total estimado</td><td class="strong" style="color:var(--green)">≈ US$ 20 a 25</td></tr>
+          </tbody>
+        </table>
+        <p style="font-size:10.2px;color:var(--ink-faint)">Premissas: 1 MB por documento, us-east-1. Valide na AWS Pricing Calculator (São Paulo é mais cara) e anexe o link.</p>
+        <ul class="bl">
+          <li>O maior custo é a janela de 12 meses no Standard, não o arquivo.</li>
+          <li>AWS Budgets e alarme de billing configurados.</li>
+          <li>Redução futura: Intelligent-Tiering ou Standard-IA após 30 dias.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <div class="card-head"><div class="card-num">10</div>Requisitos e Como Foram Atendidos</div>
+      <div class="card-body">
+        <table class="t">
+          <thead><tr><th>Requisito</th><th>Como foi atendido</th></tr></thead>
+          <tbody>
+            <tr><td class="strong">~50 mil docs/mês sem gargalo</td><td>URL pré-assinada e serviços serverless</td></tr>
+            <tr><td class="strong">Usuário A nunca vê o B</td><td>Prefixo + session policy por credencial</td></tr>
+            <tr><td class="strong">Preservar o histórico</td><td>S3 + versioning; nenhuma expiração dos objetos atuais</td></tr>
+            <tr><td class="strong">Reduzir custo</td><td>Lifecycle para Deep Archive após 365 dias</td></tr>
+            <tr><td class="strong">Segurança e privacidade</td><td>SSE-KMS, TLS, Block Public Access, CloudTrail</td></tr>
+            <tr><td class="strong">Observabilidade</td><td>CloudWatch, alarmes e GuardDuty</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- EVOLUÇÃO -->
+  <div class="row" style="grid-template-columns:1fr">
+    <div class="info-card">
+      <div class="card-head"><div class="card-num">11</div>Evolução e Visão de Futuro</div>
+      <div class="card-body">
+        <div id="evo">
+          <div class="evo-i"><b>🔒 Imutabilidade</b><p>S3 Object Lock com retenção, se o histórico precisar ser à prova de exclusão por administrador.</p></div>
+          <div class="evo-i"><b>🌍 Multi-região</b><p>Replicação entre regiões (CRR) para resistir à falha de uma região inteira.</p></div>
+          <div class="evo-i"><b>🧱 IaC e CI/CD</b><p>Terraform ou CDK com pipeline no GitHub Actions. Ambiente recriável do zero.</p></div>
+          <div class="evo-i"><b>📈 Observabilidade</b><p>Dashboard no CloudWatch, alarmes de erro e throttle, S3 Storage Lens.</p></div>
+          <div class="evo-i"><b>💸 Custo</b><p>Intelligent-Tiering, S3 Inventory e restore em lote para treino de IA.</p></div>
+          <div class="evo-i"><b>🛡️ Privacidade</b><p>Amazon Macie para achar dados pessoais e ambiente separado para treino, com dados anonimizados.</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div id="footer">
+    <div id="footer-left">
+      <div class="f-mark">X</div>
+      <span>Segurança, isolamento, escala e custo fazem parte da própria arquitetura: 50 mil documentos por mês, histórico preservado como ativo de treinamento.</span>
+    </div>
+    <div id="footer-tags">
+      <span>AWS</span><span class="ft-dot"></span>
+      <span>Serverless</span><span class="ft-dot"></span>
+      <span>Segurança</span><span class="ft-dot"></span>
+      <span>Custo eficiente</span><span class="ft-dot"></span>
+      <span>Dados que geram valor</span>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,290 @@
+<title>Manual da Demo XYZ Docs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,600..800&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: manual de operação — índice fixo à esquerda no desktop, coluna única de leitura; prints em largura total com legenda. Paleta herdada do pôster do grupo (marinho + laranja AWS). */
+:root{
+  --bg:#F3F5F8; --paper:#FFFFFF; --ink:#14202E; --soft:#4A5869; --faint:#7C8898;
+  --line:#D9DFE7; --navy:#0F2A4A; --accent:#E68A00; --accent-ink:#8A5200;
+  --ok:#1E7F3A; --ok-bg:#E6F4EA; --bad:#B23A3A; --bad-bg:#FBEAEA; --note-bg:#FFF4DD;
+  --code-bg:#EEF1F5; --shadow:0 1px 2px rgba(15,42,74,.06),0 6px 20px rgba(15,42,74,.06);
+  --f-display:'Archivo','Segoe UI',system-ui,sans-serif;
+  --f-body:'Source Sans 3','Segoe UI',system-ui,sans-serif;
+  --f-mono:'JetBrains Mono',Consolas,'SF Mono',monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C1520; --paper:#121E2C; --ink:#E6ECF3; --soft:#A9B6C6; --faint:#7F8DA0;
+  --line:#243447; --navy:#8FB4E3; --accent:#FFA630; --accent-ink:#FFC56E;
+  --ok:#6FD08C; --ok-bg:#12301E; --bad:#FF8A8A; --bad-bg:#3A1A1C; --note-bg:#2E2412;
+  --code-bg:#1A2839; --shadow:0 1px 2px rgba(0,0,0,.3); color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#0C1520; --paper:#121E2C; --ink:#E6ECF3; --soft:#A9B6C6; --faint:#7F8DA0;
+  --line:#243447; --navy:#8FB4E3; --accent:#FFA630; --accent-ink:#FFC56E;
+  --ok:#6FD08C; --ok-bg:#12301E; --bad:#FF8A8A; --bad-bg:#3A1A1C; --note-bg:#2E2412;
+  --code-bg:#1A2839; --shadow:0 1px 2px rgba(0,0,0,.3); color-scheme:dark }
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:17px;line-height:1.6;margin:0}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:20px;padding-block:28px 64px;display:grid;grid-template-columns:230px minmax(0,1fr);gap:48px}
+@media (max-width:900px){.wrap{grid-template-columns:minmax(0,1fr);gap:24px}}
+
+/* índice */
+nav.toc{position:sticky;top:calc(env(safe-area-inset-top,0px) + 20px);align-self:start;font-size:14px}
+@media (max-width:900px){nav.toc{position:static}}
+nav.toc .brand{font-family:var(--f-display);font-weight:800;font-stretch:80%;letter-spacing:.02em;color:var(--navy);font-size:15px;text-transform:uppercase;margin-bottom:12px}
+nav.toc ol{list-style:none;margin:0;padding:0;display:grid;gap:2px;counter-reset:toc}
+nav.toc a{display:block;padding:5px 10px;border-radius:6px;color:var(--soft);text-decoration:none}
+nav.toc a:hover,nav.toc a:focus-visible{background:var(--paper);color:var(--ink);outline:none}
+nav.toc .part{font-family:var(--f-mono);font-size:11px;color:var(--accent-ink);margin-right:6px}
+
+main{min-width:0}
+header.cover{padding-bottom:28px;border-bottom:1px solid var(--line);margin-bottom:8px}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-ink)}
+h1{font-family:var(--f-display);font-stretch:85%;font-weight:800;font-size:clamp(34px,5vw,50px);line-height:1.05;color:var(--navy);margin:8px 0 14px;text-wrap:balance}
+.lede{font-size:19px;color:var(--soft);max-width:62ch;margin:0}
+.facts{display:flex;flex-wrap:wrap;gap:10px 28px;margin-top:20px;font-size:14px;color:var(--soft)}
+.facts b{display:block;font-family:var(--f-display);font-stretch:85%;font-size:20px;color:var(--ink);font-variant-numeric:tabular-nums}
+
+section{padding-top:40px}
+h2{font-family:var(--f-display);font-stretch:85%;font-weight:800;font-size:30px;line-height:1.15;color:var(--navy);margin:0 0 6px;text-wrap:balance}
+h2 .tag{font-family:var(--f-mono);font-size:13px;font-weight:600;color:var(--accent-ink);display:block;letter-spacing:.06em;margin-bottom:4px}
+h3{font-family:var(--f-display);font-stretch:90%;font-weight:700;font-size:21px;margin:30px 0 6px;color:var(--ink)}
+p{max-width:68ch;margin:10px 0}
+.sub{color:var(--soft);max-width:68ch}
+code,kbd{font-family:var(--f-mono);font-size:.84em;background:var(--code-bg);padding:1px 6px;border-radius:4px;overflow-wrap:anywhere}
+pre{font-family:var(--f-mono);font-size:14px;background:var(--code-bg);padding:12px 14px;border-radius:8px;overflow-x:auto;margin:12px 0}
+
+/* passos numerados (sequência real) */
+ol.steps{list-style:none;padding:0;margin:16px 0;counter-reset:s;display:grid;gap:14px}
+ol.steps>li{counter-increment:s;display:grid;grid-template-columns:34px minmax(0,1fr);gap:12px}
+ol.steps>li::before{content:counter(s);width:30px;height:30px;border-radius:50%;background:var(--navy);color:var(--paper);font-family:var(--f-display);font-weight:800;display:flex;align-items:center;justify-content:center;font-size:15px}
+ol.steps>li>div{min-width:0}
+ol.steps>li p{margin:2px 0 0}
+
+figure{margin:18px 0 26px;background:var(--paper);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);overflow:hidden}
+figure a{display:block}
+figure img{display:block;width:100%;height:auto}
+figcaption{padding:10px 14px;font-size:14px;color:var(--soft);border-top:1px solid var(--line)}
+figcaption b{color:var(--ink)}
+figcaption .n{font-family:var(--f-mono);font-size:12px;color:var(--accent-ink);margin-right:8px}
+
+.callout{border-radius:8px;padding:12px 16px;margin:16px 0;max-width:72ch;background:var(--note-bg)}
+.callout.ok{background:var(--ok-bg)} .callout.bad{background:var(--bad-bg)}
+.callout b:first-child{display:block;margin-bottom:2px}
+.say{border-left:3px solid var(--accent);padding:4px 0 4px 14px;margin:10px 0;font-style:italic;color:var(--ink);max-width:66ch}
+.say::before{content:"Fala sugerida";display:block;font-style:normal;font-family:var(--f-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent-ink)}
+
+.tbl{overflow-x:auto;margin:14px 0}
+table{border-collapse:collapse;width:100%;font-size:15px;background:var(--paper);border:1px solid var(--line);border-radius:8px}
+th{text-align:left;font-family:var(--f-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);padding:10px 12px;border-bottom:1px solid var(--line)}
+td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+.pill{display:inline-block;font-family:var(--f-mono);font-size:12px;font-weight:600;padding:1px 8px;border-radius:10px;white-space:nowrap}
+.pill.ok{background:var(--ok-bg);color:var(--ok)} .pill.bad{background:var(--bad-bg);color:var(--bad)}
+a{color:var(--navy)}
+@media (prefers-reduced-motion:no-preference){nav.toc a{transition:background .15s}}
+</style>
+
+<div class="wrap">
+<nav class="toc" aria-label="Índice">
+  <div class="brand">XYZ Docs · Manual</div>
+  <ol>
+    <li><a href="#provas"><span class="part">00</span>O que a demo prova</a></li>
+    <li><a href="#antes"><span class="part">01</span>Antes de começar</a></li>
+    <li><a href="#deploy"><span class="part">02</span>Criar a infraestrutura</a></li>
+    <li><a href="#usuarios"><span class="part">03</span>Usuários de teste</a></li>
+    <li><a href="#demo"><span class="part">04</span>Roteiro da demonstração</a></li>
+    <li><a href="#console"><span class="part">05</span>Tour pelo console</a></li>
+    <li><a href="#numeros"><span class="part">06</span>Números medidos</a></li>
+    <li><a href="#planob"><span class="part">07</span>Plano B</a></li>
+    <li><a href="#apagar"><span class="part">08</span>Apagar tudo</a></li>
+  </ol>
+</nav>
+
+<main>
+<header class="cover">
+  <div class="eyebrow">TCC AWS · Startup XYZ · Gestão de documentos para IA</div>
+  <h1>Manual da demonstração na AWS</h1>
+  <p class="lede">Como recriar a arquitetura do zero, rodar a demonstração do slide 14 e onde encontrar no console cada configuração que a banca pode pedir para ver. Todos os prints são da conta do grupo, em São Paulo, feitos em 29/09/2026.</p>
+  <div class="facts">
+    <div><b>sa-east-1</b>Região (São Paulo)</div>
+    <div><b>26</b>Recursos criados pelo template</div>
+    <div><b>~2 min</b>Tempo do deploy</div>
+    <div><b>~US$ 1/mês</b>Custo da demo parada (chave KMS)</div>
+  </div>
+</header>
+
+<section id="provas">
+  <h2><span class="tag">00</span>O que a demo prova</h2>
+  <p class="sub">O guia pede "mostre funcionando". Cada linha abaixo é um requisito do TCC com a evidência real que a demonstração produz.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Requisito</th><th>Evidência na demo</th><th>Resultado</th></tr></thead>
+    <tbody>
+      <tr><td>Só usuário autenticado usa a API</td><td>Chamada sem token e com JWT forjado</td><td><span class="pill bad">401</span> no API Gateway</td></tr>
+      <tr><td>Arquivo não passa pelo backend</td><td>Upload direto no S3 com URL pré-assinada</td><td><span class="pill ok">204</span> gravado no prefixo do usuário</td></tr>
+      <tr><td>Usuário A nunca vê o B (1ª camada)</td><td>cliente-a pede a chave do cliente-b</td><td><span class="pill bad">403</span> checagem da aplicação</td></tr>
+      <tr><td>Usuário A nunca vê o B (2ª camada)</td><td>Mesmo ataque com a checagem desligada (bug simulado)</td><td><span class="pill bad">403 AccessDenied</span> do S3</td></tr>
+      <tr><td>Histórico preservado a custo baixo</td><td>Documento em Deep Archive e pedido de restauração</td><td><span class="pill ok">409 → 202</span> restauração solicitada</td></tr>
+      <tr><td>Dados cifrados</td><td>Detalhe do objeto no console</td><td>SSE-KMS com chave própria</td></tr>
+      <tr><td>Auditoria</td><td>CloudTrail e logs de acesso da API</td><td>Cada credencial e cada chamada registradas</td></tr>
+      <tr><td>Recriável do zero (replicação)</td><td>Template CloudFormation + README</td><td>Deploy em ~2 min</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="antes">
+  <h2><span class="tag">01</span>Antes de começar</h2>
+  <ol class="steps">
+    <li><div><b>Conta AWS ativa, região São Paulo.</b><p>No canto superior direito do console, selecione <i>América do Sul (São Paulo)</i>. Se todo serviço abrir a tela "Complete your account setup", o cadastro ainda não terminou (no nosso caso era o cartão).</p></div></li>
+    <li><div><b>Python 3 no computador que vai apresentar.</b><p>Serve só para abrir a página da demo em <code>localhost:8000</code>.</p></div></li>
+    <li><div><b>Pasta <code>demo-aws/</code> do projeto.</b><p><code>infra/template.yaml</code> (a infraestrutura), <code>app/</code> (página e PDFs de teste), <code>lambda/app.py</code> (código legível) e <code>README.md</code>.</p></div></li>
+  </ol>
+  <div class="callout"><b>Conta root</b>Fizemos tudo com o usuário root, o que é aceitável numa demo, mas a banca pode perguntar. A boa prática é ativar MFA no root e trabalhar com um usuário do IAM Identity Center. Isso é configuração de segurança da conta: quem faz é o dono dela.</div>
+  <div class="callout"><b>Plano gratuito e GuardDuty</b>O plano gratuito da AWS bloqueia o GuardDuty. Ele continua no desenho da arquitetura (escaneia cada upload; o parâmetro <code>EnforceMalwareScan</code> faz o app ler só arquivos limpos), mas não entra na demo.</div>
+</section>
+
+<section id="deploy">
+  <h2><span class="tag">02</span>Criar a infraestrutura</h2>
+  <p class="sub">Um único arquivo cria Cognito, API Gateway, Lambda, as roles do IAM, a chave KMS, o bucket S3 com todas as proteções, alarmes e o dashboard.</p>
+  <ol class="steps">
+    <li><div><b>CloudFormation → Criar pilha.</b><p>Escolha <i>Fazer upload de um arquivo de modelo</i> e envie <code>infra/template.yaml</code>.</p></div></li>
+  </ol>
+  <figure><a href="img/02-cfn-upload-modelo.jpg"><img src="img/02-cfn-upload-modelo.jpg" alt="Tela Criar pilha com template.yaml carregado" loading="lazy"></a><figcaption><span class="n">02</span><b>Upload do modelo.</b> O console guarda o arquivo num bucket <code>cf-templates-…</code> e mostra a URL.</figcaption></figure>
+  <ol class="steps" start="2" style="counter-reset:s 1">
+    <li><div><b>Nome da pilha: <code>xyz-docs</code>.</b><p>Deixe os parâmetros no padrão. <code>AlertEmail</code> vazio significa sem e-mail de alerta; preencha para ativar alarmes por e-mail e o AWS Budget.</p></div></li>
+  </ol>
+  <figure><a href="img/03-cfn-nome-parametros.jpg"><img src="img/03-cfn-nome-parametros.jpg" alt="Nome da pilha e parâmetros" loading="lazy"></a><figcaption><span class="n">03</span><b>Parâmetros.</b> <code>AllowedOrigin</code> é a origem da página da demo, liberada no CORS da API e do bucket.</figcaption></figure>
+  <ol class="steps" style="counter-reset:s 2">
+    <li><div><b>Etapa 3: role até o fim e marque a caixa de capacidades do IAM.</b><p>O template cria roles com nome fixo (<code>xyz-user-access-role</code>), por isso o aviso. Depois, <i>Próximo</i> e <i>Enviar</i>.</p></div></li>
+  </ol>
+  <figure><a href="img/04-cfn-capacidades-iam.jpg"><img src="img/04-cfn-capacidades-iam.jpg" alt="Caixa de capacidades do IAM marcada" loading="lazy"></a><figcaption><span class="n">04</span><b>Capacidades.</b> Sem essa caixa marcada o botão avança mas a criação é recusada.</figcaption></figure>
+  <ol class="steps" style="counter-reset:s 3">
+    <li><div><b>Aguarde <code>CREATE_COMPLETE</code>.</b><p>Levou cerca de 1 min 30 s.</p></div></li>
+  </ol>
+  <figure><a href="img/05-cfn-create-complete.jpg"><img src="img/05-cfn-create-complete.jpg" alt="Eventos da pilha com CREATE_COMPLETE" loading="lazy"></a><figcaption><span class="n">05</span><b>Pilha criada.</b> 99 eventos, nenhuma falha.</figcaption></figure>
+  <ol class="steps" style="counter-reset:s 4">
+    <li><div><b>Aba Saídas: anote <code>ApiUrl</code>, <code>UserPoolClientId</code> e <code>Region</code>.</b><p>São os três valores que a página da demo pede.</p></div></li>
+  </ol>
+  <figure><a href="img/06-cfn-saidas.jpg"><img src="img/06-cfn-saidas.jpg" alt="Aba Saídas da pilha" loading="lazy"></a><figcaption><span class="n">06</span><b>Saídas.</b> Também trazem o nome do bucket e o link do dashboard do CloudWatch.</figcaption></figure>
+</section>
+
+<section id="usuarios">
+  <h2><span class="tag">03</span>Criar os usuários de teste</h2>
+  <ol class="steps">
+    <li><div><b>Cognito → grupo <code>xyz-docs-usuarios</code> → Usuários → Criar usuário.</b><p>"Não enviar um convite", nome <code>cliente-a</code> (tudo minúsculo), "Definir uma senha" (mín. 8, com minúscula e número). Ligue <i>Mostrar senha</i> para conferir antes de salvar. Repita para <code>cliente-b</code>.</p></div></li>
+  </ol>
+  <figure><a href="img/14-cognito-criar-usuario.jpg"><img src="img/14-cognito-criar-usuario.jpg" alt="Formulário Criar usuário do Cognito" loading="lazy"></a><figcaption><span class="n">14</span><b>Criar usuário.</b> E-mail e telefone não são necessários.</figcaption></figure>
+  <figure><a href="img/22-cognito-usuarios-criados.jpg"><img src="img/22-cognito-usuarios-criados.jpg" alt="Lista com cliente-a e cliente-b" loading="lazy"></a><figcaption><span class="n">22</span><b>Usuários criados.</b> O status "Forçar alteração de senha" é normal: no primeiro login a página pede uma senha nova.</figcaption></figure>
+  <div class="callout bad"><b>Erro "Incorrect username or password"</b>Aconteceu conosco: a senha gravada não era a que achávamos. O Cognito não mostra a senha salva, então exclua o usuário e crie de novo com <i>Mostrar senha</i> ligado. Apague também o campo Senha da página antes de digitar, porque o Chrome pode preencher sozinho.</div>
+</section>
+
+<section id="demo">
+  <h2><span class="tag">04</span>Roteiro da demonstração</h2>
+  <p class="sub">Para o bloco do Lucas (slide 14). Faça os logins antes de a apresentação começar: o token vale 60 minutos.</p>
+  <h3>Preparar (antes da banca)</h3>
+  <ol class="steps">
+    <li><div><b>Abrir a página.</b><pre>cd demo-aws/app
+python -m http.server 8000 --bind 127.0.0.1</pre><p>Abra <code>http://localhost:8000</code>. Na primeira vez, preencha <i>Configuração</i> com as saídas da pilha e clique em Salvar.</p></div></li>
+    <li><div><b>Duas abas, uma por cliente.</b><p>Faça login como <code>cliente-a</code> numa aba e <code>cliente-b</code> na outra. Não recarregue as abas depois do login.</p></div></li>
+    <li><div><b>Deixar o console aberto em outra aba</b> na Lambda <code>xyz-docs-autoriza</code> → Configuração → Variáveis de ambiente.</div></li>
+  </ol>
+
+  <h3>1. Upload direto no S3</h3>
+  <p>Na aba do cliente-a, escolha <code>amostras/contrato-cliente-a.pdf</code> e clique em Enviar. No cliente-b, envie <code>nota-fiscal-cliente-b.pdf</code>.</p>
+  <figure><a href="img/23-demo-upload-cliente-a.jpg"><img src="img/23-demo-upload-cliente-a.jpg" alt="Upload com resposta 204 do S3" loading="lazy"></a><figcaption><span class="n">23</span><b>Upload.</b> A API devolve a URL; o navegador grava direto no S3 (<code>204</code>) dentro de <code>usuario-&lt;sub&gt;/2026/</code>.</figcaption></figure>
+  <p class="say">A Lambda não recebeu o PDF. Ela só confirmou quem é o usuário e devolveu uma URL válida por 15 minutos. O arquivo foi direto do navegador para o S3, dentro da pasta desse usuário.</p>
+
+  <h3>2. Ataque, primeira camada</h3>
+  <p>Copie a chave do arquivo do cliente-b (lista "Meus documentos" da aba dele), cole no campo 4 da aba do cliente-a e clique em <i>Tentar baixar</i>.</p>
+  <figure><a href="img/24-demo-ataque-camada1-aplicacao.jpg"><img src="img/24-demo-ataque-camada1-aplicacao.jpg" alt="Resposta 403 da aplicação" loading="lazy"></a><figcaption><span class="n">24</span><b>Bloqueado pela aplicação.</b> <code>403 "chave fora do seu prefixo"</code>.</figcaption></figure>
+
+  <h3>3. Ataque, segunda camada (bug simulado)</h3>
+  <p>No console, mude <code>APP_CHECK</code> para <code>false</code> e salve. Repita o ataque.</p>
+  <figure><a href="img/25-lambda-app-check-false.jpg"><img src="img/25-lambda-app-check-false.jpg" alt="Variável APP_CHECK com valor false" loading="lazy"></a><figcaption><span class="n">25</span><b>Checagem desligada.</b> Simula um desenvolvedor que esqueceu de validar a chave (IDOR).</figcaption></figure>
+  <figure><a href="img/26-demo-ataque-camada2-sts.jpg"><img src="img/26-demo-ataque-camada2-sts.jpg" alt="S3 responde 403 AccessDenied" loading="lazy"></a><figcaption><span class="n">26</span><b>Bloqueado pela credencial.</b> A Lambda assinou a URL, mas o S3 respondeu <code>403 AccessDenied</code>.</figcaption></figure>
+  <p class="say">Desligamos a checagem da aplicação para simular um bug. Mesmo assim o S3 negou, porque a credencial que assinou a URL foi emitida pelo STS só para a pasta do cliente-a. O isolamento não depende de o código lembrar de checar.</p>
+  <div class="callout bad"><b>Não esqueça</b>Volte <code>APP_CHECK</code> para <code>true</code> logo depois.</div>
+
+  <h3>4. Documento antigo em Deep Archive</h3>
+  <p>No cliente-a, marque "Simular documento com mais de 365 dias", envie <code>relatorio-2024-cliente-a.pdf</code>, depois clique em Baixar e em Restaurar nessa linha.</p>
+  <figure><a href="img/27-demo-deep-archive-restore.jpg"><img src="img/27-demo-deep-archive-restore.jpg" alt="409 arquivado e 202 restauração solicitada" loading="lazy"></a><figcaption><span class="n">27</span><b>Ciclo de vida.</b> Download recusado com <code>409 arquivado</code>; restauração aceita com <code>202</code>; um segundo pedido retorna <code>RestoreAlreadyInProgress</code>.</figcaption></figure>
+  <p class="say">Depois de um ano o documento vai para o Deep Archive, que custa cerca de 4% do armazenamento padrão. Ele não some: o cliente pede a restauração e o arquivo volta em até 12 horas.</p>
+
+  <h3>5. Sem login não entra</h3>
+  <p>Opcional, 20 segundos: botão <i>Chamar a API sem login</i> no bloco 4. Ele faz uma chamada sem token e outra com um JWT forjado.</p>
+  <figure><a href="img/36-demo-sem-token-401.jpg"><img src="img/36-demo-sem-token-401.jpg" alt="401 Unauthorized sem token e com token falso" loading="lazy"></a><figcaption><span class="n">36</span><b>401 no API Gateway.</b> A Lambda nem é executada, então não há custo nem superfície de ataque no código.</figcaption></figure>
+</section>
+
+<section id="console">
+  <h2><span class="tag">05</span>Tour pelo console</h2>
+  <p class="sub">Onde encontrar cada configuração se a banca pedir. Organizado pelos pilares do guia.</p>
+
+  <h3>Armazenamento e ciclo de vida (S3)</h3>
+  <figure><a href="img/28-s3-prefixos-por-usuario.jpg"><img src="img/28-s3-prefixos-por-usuario.jpg" alt="Bucket com uma pasta por usuário" loading="lazy"></a><figcaption><span class="n">28</span><b>Um prefixo por usuário.</b> S3 → bucket <code>xyz-docs-…</code> → Objetos. O nome da pasta é o <code>sub</code> do Cognito.</figcaption></figure>
+  <figure><a href="img/29-s3-objetos-classes.jpg"><img src="img/29-s3-objetos-classes.jpg" alt="Objetos em Padrão e Glacier Deep Archive" loading="lazy"></a><figcaption><span class="n">29</span><b>Classes de armazenamento.</b> Mesmo bucket, mesmo prefixo: um objeto em Padrão e outro em Glacier Deep Archive. O nome do arquivo é um UUID gerado no servidor.</figcaption></figure>
+  <figure><a href="img/12-s3-lifecycle-detalhe.jpg"><img src="img/12-s3-lifecycle-detalhe.jpg" alt="Regra de ciclo de vida" loading="lazy"></a><figcaption><span class="n">12</span><b>Lifecycle.</b> Gerenciamento → regra <code>arquivar-apos-365-dias</code>: dia 365 para Deep Archive; versões antigas vão para Deep Archive em 30 dias em vez de serem apagadas; upload incompleto é limpo em 7 dias.</figcaption></figure>
+  <figure><a href="img/07-s3-versionamento.jpg"><img src="img/07-s3-versionamento.jpg" alt="Versionamento habilitado" loading="lazy"></a><figcaption><span class="n">07</span><b>Versionamento.</b> Propriedades. Sobrescrita ou exclusão acidental pode ser desfeita.</figcaption></figure>
+
+  <h3>Segurança dos dados</h3>
+  <figure><a href="img/09-s3-bloqueio-publico-politica.jpg"><img src="img/09-s3-bloqueio-publico-politica.jpg" alt="Bloquear todo o acesso público ativado" loading="lazy"></a><figcaption><span class="n">09</span><b>Bloqueio de acesso público e política do bucket.</b> Permissões. A política nega qualquer acesso sem TLS.</figcaption></figure>
+  <figure><a href="img/10-s3-politica-nunca-apagar.jpg"><img src="img/10-s3-politica-nunca-apagar.jpg" alt="Statement NuncaApagarDeVerdade" loading="lazy"></a><figcaption><span class="n">10</span><b>"Nunca apagar".</b> Só o root consegue excluir uma versão de forma definitiva. Nem a aplicação nem um administrador do IAM conseguem.</figcaption></figure>
+  <figure><a href="img/30-s3-objeto-sse-kms.jpg"><img src="img/30-s3-objeto-sse-kms.jpg" alt="Objeto com SSE-KMS" loading="lazy"></a><figcaption><span class="n">30</span><b>Objeto cifrado.</b> Clique no objeto: SSE-KMS com a chave do projeto e Bucket Key ligada (menos chamadas ao KMS, menor custo).</figcaption></figure>
+
+  <h3>Identidade e isolamento</h3>
+  <figure><a href="img/18-api-autorizador-jwt.jpg"><img src="img/18-api-autorizador-jwt.jpg" alt="Autorizador JWT nas quatro rotas" loading="lazy"></a><figcaption><span class="n">18</span><b>Autorizador JWT.</b> API Gateway → xyz-docs-api → Autorização. As quatro rotas exigem token emitido pelo nosso grupo de usuários do Cognito.</figcaption></figure>
+  <figure><a href="img/20-iam-role-teto.jpg"><img src="img/20-iam-role-teto.jpg" alt="Política teto da role de acesso" loading="lazy"></a><figcaption><span class="n">20</span><b>Teto de permissão.</b> IAM → Funções → <code>xyz-user-access-role</code>. A Lambda assume esta role e reduz o acesso ao prefixo de um único usuário a cada pedido.</figcaption></figure>
+  <figure><a href="img/21-iam-role-confianca.jpg"><img src="img/21-iam-role-confianca.jpg" alt="Relação de confiança da role" loading="lazy"></a><figcaption><span class="n">21</span><b>Quem pode assumir.</b> Só a role da Lambda. A aba "Revogar sessões" invalida na hora todas as URLs já assinadas, útil se uma URL vazar.</figcaption></figure>
+  <figure><a href="img/16-lambda-variaveis-app-check.jpg"><img src="img/16-lambda-variaveis-app-check.jpg" alt="Variáveis de ambiente da Lambda" loading="lazy"></a><figcaption><span class="n">16</span><b>Sem segredo no código.</b> A Lambda só recebe nomes de recursos. Credenciais vêm da role, nunca de variável ou arquivo.</figcaption></figure>
+
+  <h3>Escalabilidade</h3>
+  <figure><a href="img/19-api-throttling.jpg"><img src="img/19-api-throttling.jpg" alt="Limites de throttling" loading="lazy"></a><figcaption><span class="n">19</span><b>Throttling.</b> Proteger → Controle de utilização. Nosso limite por rota: 10 req/s e pico de 20. Limite da conta: 10.000 req/s.</figcaption></figure>
+
+  <h3>Auditoria e observabilidade</h3>
+  <figure><a href="img/31-cloudtrail-assumerole-lista.jpg"><img src="img/31-cloudtrail-assumerole-lista.jpg" alt="Eventos AssumeRole no CloudTrail" loading="lazy"></a><figcaption><span class="n">31</span><b>Cada credencial registrada.</b> CloudTrail → Histórico de eventos → Nome do evento = AssumeRole. A sessão leva o <code>sub</code> do usuário no nome.</figcaption></figure>
+  <figure><a href="img/33-cloudtrail-session-policy.jpg"><img src="img/33-cloudtrail-session-policy.jpg" alt="Session policy no registro do evento" loading="lazy"></a><figcaption><span class="n">33</span><b>A política usada fica gravada.</b> <code>requestParameters.policy</code> mostra o recurso restrito a <code>usuario-&lt;sub&gt;/*</code> e <code>durationSeconds: 900</code>. O token de sessão foi borrado no print.</figcaption></figure>
+  <figure><a href="img/34-cloudwatch-dashboard.jpg"><img src="img/34-cloudwatch-dashboard.jpg" alt="Dashboard do CloudWatch" loading="lazy"></a><figcaption><span class="n">34</span><b>Dashboard xyz-docs.</b> Requisições e erros da API, invocações e duração da Lambda, e os três alarmes.</figcaption></figure>
+  <figure><a href="img/35-api-logs-acesso.jpg"><img src="img/35-api-logs-acesso.jpg" alt="Logs de acesso da API" loading="lazy"></a><figcaption><span class="n">35</span><b>Log de acesso da API.</b> Grupo <code>/xyz-docs/api-access</code>: rota, status e usuário de cada chamada, incluindo o 403 do ataque. O IP foi borrado no print.</figcaption></figure>
+</section>
+
+<section id="numeros">
+  <h2><span class="tag">06</span>Números medidos</h2>
+  <p class="sub">Valores reais desta conta, para usar nos slides de escalabilidade e segurança.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Medida</th><th>Valor</th><th>Onde ver</th></tr></thead>
+    <tbody>
+      <tr><td>Duração média da Lambda (inclui a chamada ao STS)</td><td class="num">~250 ms</td><td>Dashboard, print 34</td></tr>
+      <tr><td>Pior caso observado (cold start)</td><td class="num">~580 ms</td><td>Dashboard, print 34</td></tr>
+      <tr><td>Validade da credencial e da URL de upload</td><td class="num">900 s</td><td>CloudTrail, print 33</td></tr>
+      <tr><td>Validade da URL de download</td><td class="num">300 s</td><td><code>lambda/app.py</code></td></tr>
+      <tr><td>Uso do limite de tamanho da session policy</td><td class="num">27%</td><td><code>packedPolicySize</code>, print 33</td></tr>
+      <tr><td>Throttling por rota / conta</td><td class="num">10 req/s · 10.000 req/s</td><td>Print 19</td></tr>
+      <tr><td>50 mil documentos por mês, em média</td><td class="num">~0,02 req/s</td><td>50.000 ÷ 30 dias ÷ 86.400 s</td></tr>
+      <tr><td>Tamanho máximo aceito no upload</td><td class="num">20 MB</td><td><code>content-length-range</code></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="planob">
+  <h2><span class="tag">07</span>Plano B</h2>
+  <ol class="steps">
+    <li><div><b>Grave a demo em vídeo na véspera</b> (Win + Alt + R grava a janela no Windows). Se a internet cair, mostrem o vídeo.</div></li>
+    <li><div><b>Tenha este manual aberto.</b> Os prints 23 a 36 são a evidência mesmo sem conexão.</div></li>
+    <li><div><b>Token expirou (401 no meio da demo)?</b> Clique em Sair e entre de novo; a lista volta.</div></li>
+    <li><div><b>Upload falhou com erro de CORS?</b> A página precisa estar em <code>http://localhost:8000</code> exatamente, que é a origem liberada.</div></li>
+  </ol>
+</section>
+
+<section id="apagar">
+  <h2><span class="tag">08</span>Apagar tudo depois da banca</h2>
+  <ol class="steps">
+    <li><div><b>S3 → bucket <code>xyz-docs-…</code> → Esvaziar</b>, logado como root. A política só deixa o root apagar versões.</div></li>
+    <li><div><b>CloudFormation → pilha <code>xyz-docs</code> → Excluir.</b> Remove os outros 25 recursos.</div></li>
+    <li><div><b>A chave KMS entra em exclusão agendada</b> (até 30 dias) e deixa de ser cobrada.</div></li>
+    <li><div><b>Opcional:</b> esvaziar e apagar o bucket <code>cf-templates-…</code> criado pelo upload do template.</div></li>
+  </ol>
+  <div class="callout ok"><b>Recriar</b>Para apresentar de novo, repita as seções 02 e 03. Leva menos de 5 minutos.</div>
+</section>
+</main>
+</div>

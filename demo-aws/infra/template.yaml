@@ -1,0 +1,466 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >-
+  TCC Startup XYZ - Gestao de documentos para IA. Cognito + API Gateway (HTTP API) + Lambda + STS +
+  S3 (SSE-KMS, versioning, lifecycle para Deep Archive) + CloudWatch. Regiao sugerida: sa-east-1.
+
+Parameters:
+  AllowedOrigin:
+    Type: String
+    Default: http://localhost:8000
+    Description: Origem do app de demonstracao (CORS da API e do bucket).
+  AlertEmail:
+    Type: String
+    Default: ''
+    Description: (Opcional) e-mail para alarmes e para o AWS Budget. Vazio = sem notificacao por e-mail.
+  MonthlyBudgetUSD:
+    Type: Number
+    Default: 10
+    Description: Limite mensal do AWS Budget, em dolares.
+  EnforceMalwareScan:
+    Type: String
+    Default: 'false'
+    AllowedValues: ['true', 'false']
+    Description: >-
+      true = o app so consegue ler objetos que o GuardDuty marcou como NO_THREATS_FOUND.
+      Ligue somente depois de ativar o GuardDuty Malware Protection no bucket.
+
+Conditions:
+  HasEmail: !Not [!Equals [!Ref AlertEmail, '']]
+  EnforceScan: !Equals [!Ref EnforceMalwareScan, 'true']
+
+Resources:
+  # ---------------------------------------------------------------- Dados
+  DocsKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: Chave dos documentos da Startup XYZ (SSE-KMS)
+      EnableKeyRotation: true
+      KeyPolicy:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AdministracaoPelaConta
+            Effect: Allow
+            Principal: { AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root' }
+            Action: 'kms:*'
+            Resource: '*'
+
+  DocsKeyAlias:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: alias/xyz-docs
+      TargetKeyId: !Ref DocsKey
+
+  DocsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'xyz-docs-${AWS::AccountId}'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      OwnershipControls:
+        Rules: [{ ObjectOwnership: BucketOwnerEnforced }]
+      VersioningConfiguration: { Status: Enabled }
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: aws:kms
+              KMSMasterKeyID: !GetAtt DocsKey.Arn
+            BucketKeyEnabled: true
+      LifecycleConfiguration:
+        Rules:
+          - Id: arquivar-apos-365-dias
+            Status: Enabled
+            Prefix: usuario-
+            Transitions:
+              - { StorageClass: DEEP_ARCHIVE, TransitionInDays: 365 }
+            # regra de negocio "nunca apagar": versoes antigas sao arquivadas, nao expiradas
+            NoncurrentVersionTransitions:
+              - { StorageClass: DEEP_ARCHIVE, TransitionInDays: 30 }
+            AbortIncompleteMultipartUpload: { DaysAfterInitiation: 7 }
+      CorsConfiguration:
+        CorsRules:
+          - AllowedMethods: [POST, GET]
+            AllowedOrigins: [!Ref AllowedOrigin]
+            AllowedHeaders: ['*']
+            MaxAge: 3000
+
+  DocsBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref DocsBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: NegaTrafegoSemTLS
+            Effect: Deny
+            Principal: '*'
+            Action: 's3:*'
+            Resource: [!GetAtt DocsBucket.Arn, !Sub '${DocsBucket.Arn}/*']
+            Condition: { Bool: { 'aws:SecureTransport': 'false' } }
+          - Sid: NuncaApagarDeVerdade
+            Effect: Deny
+            Principal: '*'
+            Action: 's3:DeleteObjectVersion'
+            Resource: !Sub '${DocsBucket.Arn}/*'
+            Condition: { ArnNotEquals: { 'aws:PrincipalArn': !Sub 'arn:aws:iam::${AWS::AccountId}:root' } }
+          - !If
+            - EnforceScan
+            - Sid: AppSoLeArquivoEscaneado
+              Effect: Deny
+              Principal: '*'
+              Action: 's3:GetObject'
+              Resource: !Sub '${DocsBucket.Arn}/*'
+              Condition:
+                ArnEquals: { 'aws:PrincipalArn': !GetAtt UserAccessRole.Arn }
+                StringNotEquals: { 's3:ExistingObjectTag/GuardDutyMalwareScanStatus': 'NO_THREATS_FOUND' }
+            - !Ref AWS::NoValue
+
+  # ---------------------------------------------------------------- Identidade e permissao
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: xyz-docs-usuarios
+      AdminCreateUserConfig: { AllowAdminCreateUserOnly: true }
+      UsernameConfiguration: { CaseSensitive: false }
+      Policies:
+        PasswordPolicy: { MinimumLength: 8, RequireLowercase: true, RequireNumbers: true, RequireUppercase: false, RequireSymbols: false }
+
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: xyz-docs-app
+      UserPoolId: !Ref UserPool
+      GenerateSecret: false
+      ExplicitAuthFlows: [ALLOW_USER_PASSWORD_AUTH, ALLOW_REFRESH_TOKEN_AUTH]
+      IdTokenValidity: 60
+      AccessTokenValidity: 60
+      TokenValidityUnits: { IdToken: minutes, AccessToken: minutes }
+      PreventUserExistenceErrors: ENABLED
+
+  LambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - { Effect: Allow, Principal: { Service: lambda.amazonaws.com }, Action: 'sts:AssumeRole' }
+      ManagedPolicyArns: ['arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole']
+      Policies:
+        - PolicyName: pode-assumir-somente-a-role-de-acesso
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: 'sts:AssumeRole'
+                Resource: !Sub 'arn:aws:iam::${AWS::AccountId}:role/xyz-user-access-role'
+
+  # Teto de permissao. A Lambda nao tem acesso ao bucket: ela assume esta role e reduz ao prefixo do usuario.
+  UserAccessRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: xyz-user-access-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - { Effect: Allow, Principal: { AWS: !GetAtt LambdaRole.Arn }, Action: 'sts:AssumeRole' }
+      Policies:
+        - PolicyName: teto-acesso-documentos
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: ['s3:GetObject', 's3:PutObject', 's3:RestoreObject']
+                Resource: !Sub '${DocsBucket.Arn}/usuario-*'
+              - Effect: Allow
+                Action: 's3:ListBucket'
+                Resource: !GetAtt DocsBucket.Arn
+                Condition: { StringLike: { 's3:prefix': 'usuario-*' } }
+              - Effect: Allow
+                Action: ['kms:GenerateDataKey', 'kms:Decrypt']
+                Resource: !GetAtt DocsKey.Arn
+
+  # ---------------------------------------------------------------- Computacao e API
+  FunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/xyz-docs-autoriza
+      RetentionInDays: 30
+
+  AuthFunction:
+    Type: AWS::Lambda::Function
+    DependsOn: FunctionLogGroup
+    Properties:
+      FunctionName: xyz-docs-autoriza
+      Description: Autoriza pelo sub do JWT, assume credencial escopada (STS) e gera URL pre-assinada
+      Runtime: python3.12
+      Handler: index.handler
+      Timeout: 10
+      MemorySize: 256
+      Role: !GetAtt LambdaRole.Arn
+      Environment:
+        Variables:
+          BUCKET: !Ref DocsBucket
+          ROLE_ARN: !GetAtt UserAccessRole.Arn
+          KMS_KEY_ARN: !GetAtt DocsKey.Arn
+          APP_CHECK: 'true'
+      Code:
+        ZipFile: |
+          import json, os, uuid, datetime, boto3
+          from botocore.config import Config
+          from botocore.exceptions import ClientError
+
+          B = os.environ['BUCKET']; R = os.environ['ROLE_ARN']; K = os.environ['KMS_KEY_ARN']; REG = os.environ['AWS_REGION']
+          TIPOS = {'application/pdf': 'pdf', 'image/png': 'png', 'image/jpeg': 'jpg'}
+          sts = boto3.client('sts')
+
+
+          def s3_do_usuario(sub):
+              # Credencial de 15 min que so alcanca o prefixo do usuario (session policy)
+              p = f'usuario-{sub}'
+              pol = {'Version': '2012-10-17', 'Statement': [
+                  {'Effect': 'Allow', 'Action': ['s3:GetObject', 's3:PutObject', 's3:RestoreObject'], 'Resource': f'arn:aws:s3:::{B}/{p}/*'},
+                  {'Effect': 'Allow', 'Action': 's3:ListBucket', 'Resource': f'arn:aws:s3:::{B}', 'Condition': {'StringLike': {'s3:prefix': f'{p}/*'}}},
+                  {'Effect': 'Allow', 'Action': ['kms:GenerateDataKey', 'kms:Decrypt'], 'Resource': K}]}
+              c = sts.assume_role(RoleArn=R, RoleSessionName=f'u-{sub}', Policy=json.dumps(pol), DurationSeconds=900)['Credentials']
+              s3 = boto3.client('s3', region_name=REG, endpoint_url=f'https://s3.{REG}.amazonaws.com',
+                                aws_access_key_id=c['AccessKeyId'], aws_secret_access_key=c['SecretAccessKey'], aws_session_token=c['SessionToken'],
+                                config=Config(signature_version='s3v4', s3={'addressing_style': 'virtual'}))
+              return p, s3
+
+
+          def r(code, body):
+              return {'statusCode': code, 'headers': {'content-type': 'application/json'}, 'body': json.dumps(body, default=str)}
+
+
+          def handler(event, ctx):
+              sub = event['requestContext']['authorizer']['jwt']['claims']['sub']  # identidade vem do token, nunca do corpo
+              rota = event['routeKey']; q = event.get('queryStringParameters') or {}
+              p, s3 = s3_do_usuario(sub)
+
+              if rota == 'POST /upload-url':
+                  b = json.loads(event.get('body') or '{}'); ct = b.get('contentType')
+                  if ct not in TIPOS:
+                      return r(400, {'erro': 'tipo de arquivo nao permitido'})
+                  key = f'{p}/{datetime.date.today().year}/{uuid.uuid4()}.{TIPOS[ct]}'
+                  f = {'Content-Type': ct}; c = [{'Content-Type': ct}, ['content-length-range', 1, 20 * 1024 * 1024]]
+                  if b.get('simularAntigo'):  # demo: grava direto em Deep Archive, como se tivesse +365 dias
+                      f['x-amz-storage-class'] = 'DEEP_ARCHIVE'; c.append({'x-amz-storage-class': 'DEEP_ARCHIVE'})
+                  return r(200, {'key': key, 'post': s3.generate_presigned_post(B, key, Fields=f, Conditions=c, ExpiresIn=900)})
+
+              if rota == 'GET /files':
+                  objs = s3.list_objects_v2(Bucket=B, Prefix=p + '/').get('Contents', [])
+                  return r(200, [{'key': o['Key'], 'tamanho': o['Size'], 'classe': o['StorageClass'], 'data': o['LastModified']} for o in objs])
+
+              key = q.get('key', '')
+              # 1a camada: checagem da aplicacao. APP_CHECK=false simula um bug (IDOR) para provar a 2a camada.
+              if os.environ.get('APP_CHECK', 'true') == 'true' and not key.startswith(p + '/'):
+                  return r(403, {'camada': 'aplicacao', 'erro': 'chave fora do seu prefixo'})
+
+              if rota == 'GET /download-url':
+                  url = s3.generate_presigned_url('get_object', Params={'Bucket': B, 'Key': key}, ExpiresIn=300)
+                  try:
+                      h = s3.head_object(Bucket=B, Key=key)
+                  except ClientError as e:  # 2a camada: a credencial escopada nao alcanca outro prefixo
+                      return r(200, {'url': url, 'aviso': 'S3 negou o HEAD: ' + e.response['Error']['Code']})
+                  if h.get('StorageClass') == 'DEEP_ARCHIVE' and 'ongoing-request="false"' not in h.get('Restore', ''):
+                      return r(409, {'status': 'arquivado', 'restore': h.get('Restore', 'nao solicitado')})
+                  return r(200, {'url': url})
+
+              if rota == 'POST /restore':
+                  try:
+                      s3.restore_object(Bucket=B, Key=key, RestoreRequest={'Days': 3, 'GlacierJobParameters': {'Tier': 'Standard'}})
+                  except ClientError as e:
+                      return r(409, {'erro': e.response['Error']['Code']})
+                  return r(202, {'status': 'restauracao solicitada (ate 12 h no tier Standard)'})
+
+              return r(404, {'erro': 'rota desconhecida'})
+
+  HttpApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: xyz-docs-api
+      ProtocolType: HTTP
+      CorsConfiguration:
+        AllowOrigins: [!Ref AllowedOrigin]
+        AllowMethods: [GET, POST, OPTIONS]
+        AllowHeaders: [authorization, content-type]
+        MaxAge: 300
+
+  JwtAuthorizer:
+    Type: AWS::ApiGatewayV2::Authorizer
+    Properties:
+      ApiId: !Ref HttpApi
+      Name: cognito-jwt
+      AuthorizerType: JWT
+      IdentitySource: ['$request.header.Authorization']
+      JwtConfiguration:
+        Audience: [!Ref UserPoolClient]
+        Issuer: !Sub 'https://cognito-idp.${AWS::Region}.amazonaws.com/${UserPool}'
+
+  LambdaIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref HttpApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt AuthFunction.Arn
+      PayloadFormatVersion: '2.0'
+
+  RouteUpload:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: 'POST /upload-url'
+      AuthorizationType: JWT
+      AuthorizerId: !Ref JwtAuthorizer
+      Target: !Sub 'integrations/${LambdaIntegration}'
+  RouteDownload:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: 'GET /download-url'
+      AuthorizationType: JWT
+      AuthorizerId: !Ref JwtAuthorizer
+      Target: !Sub 'integrations/${LambdaIntegration}'
+  RouteFiles:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: 'GET /files'
+      AuthorizationType: JWT
+      AuthorizerId: !Ref JwtAuthorizer
+      Target: !Sub 'integrations/${LambdaIntegration}'
+  RouteRestore:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: 'POST /restore'
+      AuthorizationType: JWT
+      AuthorizerId: !Ref JwtAuthorizer
+      Target: !Sub 'integrations/${LambdaIntegration}'
+
+  ApiAccessLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /xyz-docs/api-access
+      RetentionInDays: 30
+
+  ApiStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref HttpApi
+      StageName: $default
+      AutoDeploy: true
+      DefaultRouteSettings: { ThrottlingBurstLimit: 20, ThrottlingRateLimit: 10 }
+      AccessLogSettings:
+        DestinationArn: !GetAtt ApiAccessLogs.Arn
+        Format: '{"requestId":"$context.requestId","ip":"$context.identity.sourceIp","rota":"$context.routeKey","status":"$context.status","usuario":"$context.authorizer.claims.sub","erroAuth":"$context.authorizer.error","latenciaMs":"$context.responseLatency"}'
+
+  ApiInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref AuthFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${HttpApi}/*'
+
+  # ---------------------------------------------------------------- Observabilidade e custo
+  AlertTopic:
+    Type: AWS::SNS::Topic
+    Condition: HasEmail
+    Properties:
+      TopicName: xyz-docs-alertas
+      Subscription: [{ Protocol: email, Endpoint: !Ref AlertEmail }]
+
+  AlarmLambdaErrors:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: xyz-docs-lambda-erros
+      AlarmDescription: A Lambda de autorizacao falhou ao menos uma vez em 5 minutos
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions: [{ Name: FunctionName, Value: !Ref AuthFunction }]
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: !If [HasEmail, [!Ref AlertTopic], !Ref AWS::NoValue]
+
+  AlarmApi4xx:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: xyz-docs-api-4xx-alto
+      AlarmDescription: Muitas respostas 4xx (token invalido, acesso negado ou throttling) - possivel abuso
+      Namespace: AWS/ApiGateway
+      MetricName: 4xx
+      Dimensions: [{ Name: ApiId, Value: !Ref HttpApi }]
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 20
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: !If [HasEmail, [!Ref AlertTopic], !Ref AWS::NoValue]
+
+  AlarmApi5xx:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: xyz-docs-api-5xx
+      AlarmDescription: A API devolveu erro de servidor
+      Namespace: AWS/ApiGateway
+      MetricName: 5xx
+      Dimensions: [{ Name: ApiId, Value: !Ref HttpApi }]
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: !If [HasEmail, [!Ref AlertTopic], !Ref AWS::NoValue]
+
+  Dashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Properties:
+      DashboardName: xyz-docs
+      DashboardBody: !Sub |
+        {"widgets":[
+          {"type":"metric","x":0,"y":0,"width":12,"height":6,"properties":{"title":"API - requisicoes e erros","region":"${AWS::Region}","stat":"Sum","period":300,
+            "metrics":[["AWS/ApiGateway","Count","ApiId","${HttpApi}"],[".","4xx",".","."],[".","5xx",".","."]]}},
+          {"type":"metric","x":12,"y":0,"width":12,"height":6,"properties":{"title":"Lambda - invocacoes, erros e throttles","region":"${AWS::Region}","stat":"Sum","period":300,
+            "metrics":[["AWS/Lambda","Invocations","FunctionName","${AuthFunction}"],[".","Errors",".","."],[".","Throttles",".","."]]}},
+          {"type":"metric","x":0,"y":6,"width":12,"height":6,"properties":{"title":"Lambda - duracao (ms)","region":"${AWS::Region}","stat":"Average","period":300,
+            "metrics":[["AWS/Lambda","Duration","FunctionName","${AuthFunction}"],["...",{"stat":"Maximum"}]]}},
+          {"type":"alarm","x":12,"y":6,"width":12,"height":6,"properties":{"title":"Alarmes","alarms":["${AlarmLambdaErrors.Arn}","${AlarmApi4xx.Arn}","${AlarmApi5xx.Arn}"]}}
+        ]}
+
+  MonthlyBudget:
+    Type: AWS::Budgets::Budget
+    Condition: HasEmail
+    Properties:
+      Budget:
+        BudgetName: xyz-docs-mensal
+        BudgetType: COST
+        TimeUnit: MONTHLY
+        BudgetLimit: { Amount: !Ref MonthlyBudgetUSD, Unit: USD }
+      NotificationsWithSubscribers:
+        - Notification: { NotificationType: ACTUAL, ComparisonOperator: GREATER_THAN, Threshold: 80, ThresholdType: PERCENTAGE }
+          Subscribers: [{ SubscriptionType: EMAIL, Address: !Ref AlertEmail }]
+        - Notification: { NotificationType: FORECASTED, ComparisonOperator: GREATER_THAN, Threshold: 100, ThresholdType: PERCENTAGE }
+          Subscribers: [{ SubscriptionType: EMAIL, Address: !Ref AlertEmail }]
+
+Outputs:
+  ApiUrl:
+    Value: !GetAtt HttpApi.ApiEndpoint
+  UserPoolId:
+    Value: !Ref UserPool
+  UserPoolClientId:
+    Value: !Ref UserPoolClient
+  BucketName:
+    Value: !Ref DocsBucket
+  Region:
+    Value: !Ref AWS::Region
+  DashboardUrl:
+    Value: !Sub 'https://${AWS::Region}.console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#dashboards/dashboard/xyz-docs'
